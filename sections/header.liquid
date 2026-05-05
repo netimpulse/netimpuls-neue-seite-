@@ -13,7 +13,7 @@
 -%}
 
 {% style %}
-  {%- if scheme -%}
+  {%- if scheme != blank and scheme.settings != blank and scheme.settings.background != blank -%}
     .color-{{ scheme.id }} {
       --color-background: {{ scheme.settings.background.red }}, {{ scheme.settings.background.green }}, {{ scheme.settings.background.blue }};
       --color-text: {{ scheme.settings.text.red }}, {{ scheme.settings.text.green }}, {{ scheme.settings.text.blue }};
@@ -312,12 +312,6 @@
       "id": "show_line_separator",
       "default": true,
       "label": "t:sections.header.settings.show_line_separator.label"
-    },
-    {
-      "type": "color_scheme",
-      "id": "color_scheme",
-      "label": "t:sections.header.settings.color_scheme.label",
-      "default": "scheme-1"
     },
     {
       "type": "header",

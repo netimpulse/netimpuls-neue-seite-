@@ -182,6 +182,33 @@
         },
         "logo_width": {
           "label": "Logo-Breite"
+        },
+        "sticky_header_type": {
+          "label": "Sticky-Header-Verhalten",
+          "options__1": {
+            "label": "Aus"
+          },
+          "options__2": {
+            "label": "Beim Hochscrollen"
+          },
+          "options__3": {
+            "label": "Immer sichtbar"
+          }
+        },
+        "show_line_separator": {
+          "label": "Linie unter Header"
+        },
+        "spacing_header": {
+          "content": "Abstand"
+        },
+        "margin_bottom": {
+          "label": "Abstand nach unten"
+        },
+        "padding_top": {
+          "label": "Abstand oben"
+        },
+        "padding_bottom": {
+          "label": "Abstand unten"
         }
       },
       "logo": "Schrift-Logo",

@@ -15,7 +15,8 @@
           <li class="predictive-search__list-item" id="predictive-search-option-product-{{ forloop.index }}" role="option" aria-selected="false">
             <a href="{{ product.url }}" class="predictive-search__item link link--text" tabindex="-1">
               {%- if product.featured_media != blank -%}
-                {{ product.featured_media | image_url: width: 96 | image_tag: class: 'predictive-search__image', loading: 'lazy', widths: '48,72,96', sizes: '48px', alt: product.featured_media.alt | default: product.title | escape }}
+                {%- assign ps_alt = product.featured_media.alt | default: product.title | escape -%}
+                {{ product.featured_media | image_url: width: 96 | image_tag: class: 'predictive-search__image', loading: 'lazy', widths: '48,72,96', sizes: '48px', alt: ps_alt }}
               {%- endif -%}
               <span>
                 <span class="predictive-search__item-heading">{{ product.title | escape }}</span>
