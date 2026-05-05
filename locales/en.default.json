@@ -88,7 +88,13 @@
     },
     "search": {
       "title": "Search",
-      "placeholder": "Search products, collections, articles…"
+      "placeholder": "Search products, collections, articles…",
+      "submit": "Search",
+      "reset": "Clear search term",
+      "loading": "Loading",
+      "suggestions": "Suggestions",
+      "no_suggestions": "No suggestions found.",
+      "search_for": "Search for “{{ terms }}”"
     },
     "slideshow": {
       "next": "Next slide",

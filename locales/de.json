@@ -19,7 +19,13 @@
     },
     "search": {
       "title": "Suche",
-      "placeholder": "Produkte, Kategorien, Beiträge…"
+      "placeholder": "Produkte, Kategorien, Beiträge…",
+      "submit": "Suchen",
+      "reset": "Suchbegriff löschen",
+      "loading": "Lädt",
+      "suggestions": "Vorschläge",
+      "no_suggestions": "Keine Vorschläge gefunden.",
+      "search_for": "Nach „{{ terms }}“ suchen"
     },
     "slideshow": {
       "next": "Nächste Folie",

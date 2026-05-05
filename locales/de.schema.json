@@ -162,8 +162,8 @@
           "label": "Hauptnavigation anzeigen"
         },
         "drawer_menu": {
-          "label": "Burger-Drawer-Menü (zweites Menü)",
-          "info": "Öffnet sich über das Burger-Icon. Nutze das für Kategorien wie Damen, Herren, Jacken."
+          "label": "Mobiles Drawer-Menü",
+          "info": "Fällt auf das Hauptmenü zurück, wenn leer."
         },
         "drawer_promo_heading": {
           "label": "Drawer-Promo-Überschrift"

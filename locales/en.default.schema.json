@@ -237,8 +237,8 @@
           "label": "Show main navigation"
         },
         "drawer_menu": {
-          "label": "Burger drawer menu (second menu)",
-          "info": "Opens from the burger icon. Use this for categories like Women, Men, Jackets."
+          "label": "Mobile drawer menu",
+          "info": "Falls back to the main menu when empty."
         },
         "drawer_promo_heading": {
           "label": "Drawer promo heading"
