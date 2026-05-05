@@ -145,7 +145,8 @@
           "content": "Logo"
         },
         "logo": {
-          "label": "Logo"
+          "label": "Logo",
+          "info": "Legacy-Einstellung: leer lassen, wenn das Bild-Logo genutzt wird."
         },
         "logo_height": {
           "label": "Logo-Höhe"
@@ -175,8 +176,17 @@
         },
         "sticky_header": {
           "label": "Sticky Header"
+        },
+        "logo_image": {
+          "label": "Bild-Logo"
+        },
+        "logo_width": {
+          "label": "Logo-Breite"
         }
-      }
+      },
+      "logo": "Schrift-Logo",
+      "logo_image": "Bild-Logo",
+      "logo_width": "Logo-Breite"
     },
     "footer": {
       "name": "Footer",

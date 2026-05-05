@@ -20,6 +20,9 @@
   assign drawer_linklist = linklists[section.settings.drawer_menu]
   assign show_main_nav = section.settings.show_main_nav
   assign sticky = section.settings.sticky_header
+  assign header_logo = section.settings.logo_image | default: section.settings.logo
+  assign logo_width = section.settings.logo_width | default: 140
+  assign image_width = logo_width | times: 2
 -%}
 
 {% style %}
@@ -32,8 +35,8 @@
   }
   {%- endif -%}
   #shopify-section-{{ section.id }} {
-    --logo-height: {{ section.settings.logo_height | default: 40 }}px;
-    --header-height: {{ section.settings.logo_height | default: 40 | plus: 48 }}px;
+    --logo-width: {{ logo_width }}px;
+    --header-min-height: {{ logo_width | divided_by: 2 | at_least: 64 | at_most: 92 }}px;
   }
 {% endstyle %}
 
@@ -52,16 +55,15 @@
 
     {%- comment -%} CENTER: logo + (optional) main nav {%- endcomment -%}
     <div class="site-header__center">
-      {%- if section.settings.logo != blank -%}
-        {%- assign logo_alt = section.settings.logo.alt | default: shop.name | escape -%}
-        {%- assign logo_width = section.settings.logo_height | times: 4 -%}
+      {%- if header_logo != blank -%}
+        {%- assign logo_alt = header_logo.alt | default: shop.name | escape -%}
         <a href="{{ routes.root_url }}" class="site-header__logo-link" aria-label="{{ shop.name | escape }}">
-          {{ section.settings.logo | image_url: width: logo_width | image_tag:
+          {{ header_logo | image_url: width: image_width | image_tag:
              alt: logo_alt,
              loading: 'eager',
              class: 'site-header__logo',
-             widths: '120,240,360',
-             sizes: '(min-width: 750px) 200px, 140px' }}
+             widths: '90,120,140,180,240,280,360,420',
+             sizes: '(min-width: 990px) var(--logo-width), min(42vw, var(--logo-width))' }}
         </a>
       {%- else -%}
         <a href="{{ routes.root_url }}" class="site-header__logo-link site-header__logo-text">
@@ -193,6 +195,8 @@
                autocomplete="off"
                autocorrect="off"
                spellcheck="false">
+        <input type="hidden" name="options[prefix]" value="last">
+        <input type="hidden" name="type" value="product,page,article">
         <button type="submit" class="site-search__submit" aria-label="{{ 'general.accessibility.submit_search' | t }}">
           {%- render 'icon', name: 'search' -%}
         </button>
@@ -221,22 +225,22 @@
     },
     {
       "type": "header",
-      "content": "t:sections.header.settings.logo_header.content"
+      "content": "t:sections.header.logo"
     },
     {
       "type": "image_picker",
-      "id": "logo",
-      "label": "t:sections.header.settings.logo.label"
+      "id": "logo_image",
+      "label": "t:sections.header.logo_image"
     },
     {
       "type": "range",
-      "id": "logo_height",
-      "min": 20,
-      "max": 80,
-      "step": 4,
+      "id": "logo_width",
+      "min": 80,
+      "max": 260,
+      "step": 10,
       "unit": "px",
-      "label": "t:sections.header.settings.logo_height.label",
-      "default": 40
+      "label": "t:sections.header.logo_width",
+      "default": 140
     },
     {
       "type": "header",
