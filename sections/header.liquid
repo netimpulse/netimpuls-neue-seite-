@@ -26,7 +26,7 @@
 -%}
 
 {% style %}
-  {%- if scheme -%}
+  {%- if scheme != blank and scheme.settings != blank and scheme.settings.background != blank -%}
   .color-{{ scheme.id }} {
     --color-background: {{ scheme.settings.background.red }}, {{ scheme.settings.background.green }}, {{ scheme.settings.background.blue }};
     --color-text: {{ scheme.settings.text.red }}, {{ scheme.settings.text.green }}, {{ scheme.settings.text.blue }};

@@ -144,6 +144,18 @@
     },
     "usp_bar": {
       "aria_label": "Store benefits"
+    },
+    "theme_store": {
+      "search_label": "Search themes",
+      "search_placeholder": "Search themes, categories, features…",
+      "suggestions_label": "Search suggestions",
+      "searching": "Searching…",
+      "no_suggestions_html": "No direct matches. Press Enter to see all results.",
+      "see_all_results": "See all results",
+      "filter_label": "Filter",
+      "pagination_label": "Pagination",
+      "empty_state": "No themes available in this category right now.",
+      "show_all": "Show all themes"
     }
   }
 }

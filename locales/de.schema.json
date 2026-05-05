@@ -534,6 +534,81 @@
     "main_cart": {
       "name": "Warenkorb",
       "show_note": "Bestellnotiz-Feld aktivieren"
+    },
+    "theme_store": {
+      "name": "Theme Store",
+      "settings": {
+        "color_scheme": {
+          "label": "Farbschema"
+        },
+        "content_header": {
+          "content": "Inhalt"
+        },
+        "heading": {
+          "label": "Überschrift"
+        },
+        "collection_header": {
+          "content": "Kollektion & Sidebar"
+        },
+        "default_collection": {
+          "label": "Master-Kollektion (Alle Themes)",
+          "info": "Diese Kollektion wird angezeigt, wenn der Tab „Alle Themes\" aktiv ist. Empfohlen: Smart-Collection mit Regel „Ist in irgendeiner dieser Kollektionen\"."
+        },
+        "default_label": {
+          "label": "Label für „Alle Themes\"-Tab"
+        },
+        "categories_heading": {
+          "label": "Überschrift Kategorien-Block"
+        },
+        "features_heading": {
+          "label": "Überschrift Features-Block"
+        },
+        "layout_header": {
+          "content": "Layout"
+        },
+        "products_per_row": {
+          "label": "Produkte pro Reihe (Desktop)"
+        },
+        "products_per_page": {
+          "label": "Produkte pro Seite"
+        },
+        "spacing_header": {
+          "content": "Abstand"
+        },
+        "padding_top": {
+          "label": "Abstand oben"
+        },
+        "padding_bottom": {
+          "label": "Abstand unten"
+        }
+      },
+      "blocks": {
+        "category": {
+          "name": "Kategorie",
+          "settings": {
+            "collection": {
+              "label": "Kollektion"
+            },
+            "custom_label": {
+              "label": "Anzeige-Name (optional)",
+              "info": "Falls leer, wird der Kollektions-Titel verwendet."
+            }
+          }
+        },
+        "feature": {
+          "name": "Feature",
+          "settings": {
+            "text": {
+              "label": "Text"
+            }
+          }
+        }
+      },
+      "presets": {
+        "default": {
+          "name": "Theme Store"
+        }
+      }
     }
   },
   "general": {

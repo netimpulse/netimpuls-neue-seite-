@@ -1,0 +1,409 @@
+{%- comment -%}
+  Theme Store Section
+  -------------------
+  - Header: heading + predictive-search bar with dropdown results
+  - Sidebar (left on desktop, drawer on mobile):
+      * Category filter (block type "category" — pick collection + optional custom label, can be added/removed unlimited)
+      * Feature list (block type "feature" — free text, optional)
+      * "Alle Themes" tab is rendered first; it points to the section's default_collection (recommended: master collection)
+  - Main: paginated product grid using collection.products
+  - State via URL query param ?cat=<collection_handle> ; defaults to default_collection
+
+  Predictive search: assets/section-theme-store.js queries /search/suggest.json
+  with multiple variants for typo tolerance (raw, prefix, AND-ed tokens).
+
+  Mobile-first: sidebar collapses into a drawer toggled via "Filter" button.
+{%- endcomment -%}
+
+{{ 'section-theme-store.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'section-theme-store.js' | asset_url }}" defer></script>
+
+{%- liquid
+  assign scheme = section.settings.color_scheme
+  assign default_collection = collections[section.settings.default_collection]
+  assign default_label = section.settings.default_label | default: 'Alle Themes'
+  assign categories_heading = section.settings.categories_heading
+  assign features_heading = section.settings.features_heading
+  assign products_per_page = section.settings.products_per_page | default: 12
+
+  comment
+    Determine the active filter from URL ?cat=<handle>.
+    If the user opened ?cat=fashion and a "category" block points to collections.fashion, use that.
+    Otherwise fall back to default_collection.
+  endcomment
+  assign active_handle = ''
+  if request.path contains '/collections/'
+    assign active_handle = request.path | split: '/collections/' | last | split: '/' | first
+  endif
+  if request.params.cat != blank
+    assign active_handle = request.params.cat
+  endif
+
+  assign active_collection = default_collection
+  if active_handle != blank and collections[active_handle] != blank
+    assign active_collection = collections[active_handle]
+  endif
+-%}
+
+{% style %}
+  {%- if scheme -%}
+  #shopify-section-{{ section.id }} .color-{{ scheme.id }} {
+    --color-background: {{ scheme.settings.background.red }}, {{ scheme.settings.background.green }}, {{ scheme.settings.background.blue }};
+    --color-text: {{ scheme.settings.text.red }}, {{ scheme.settings.text.green }}, {{ scheme.settings.text.blue }};
+    --color-button: {{ scheme.settings.button.red }}, {{ scheme.settings.button.green }}, {{ scheme.settings.button.blue }};
+    --color-button-label: {{ scheme.settings.button_label.red }}, {{ scheme.settings.button_label.green }}, {{ scheme.settings.button_label.blue }};
+  }
+  {%- endif -%}
+  #shopify-section-{{ section.id }} {
+    --ts-padding-top: {{ section.settings.padding_top | default: 48 }}px;
+    --ts-padding-bottom: {{ section.settings.padding_bottom | default: 64 }}px;
+    --ts-cols-desktop: {{ section.settings.products_per_row | default: 3 }};
+  }
+{% endstyle %}
+
+<theme-store class="theme-store color-scheme color-{{ scheme.id }}" data-section-id="{{ section.id }}" data-default-handle="{{ section.settings.default_collection | escape }}" data-active-handle="{{ active_handle | escape }}">
+
+  {%- if section.settings.heading != blank -%}
+    <header class="theme-store__heading-wrap">
+      <h2 class="theme-store__heading">{{ section.settings.heading | escape }}</h2>
+    </header>
+  {%- endif -%}
+
+  {%- comment -%} ============ SEARCH BAR ============ {%- endcomment -%}
+  <div class="theme-store__search-wrap">
+    <form action="{{ routes.search_url }}" method="get" role="search" class="theme-store__search" data-search-form>
+      <label for="ThemeStoreSearch-{{ section.id }}" class="visually-hidden">{{ 'sections.theme_store.search_label' | t }}</label>
+      <span class="theme-store__search-icon" aria-hidden="true">{%- render 'icon', name: 'search' -%}</span>
+      <input
+        id="ThemeStoreSearch-{{ section.id }}"
+        type="search"
+        name="q"
+        class="theme-store__search-input"
+        placeholder="{{ 'sections.theme_store.search_placeholder' | t }}"
+        autocomplete="off"
+        autocorrect="off"
+        spellcheck="false"
+        maxlength="120"
+        aria-controls="ThemeStoreSuggest-{{ section.id }}"
+        aria-expanded="false"
+        aria-autocomplete="list"
+        data-search-input>
+      <input type="hidden" name="type" value="product">
+      <input type="hidden" name="options[unavailable_products]" value="last">
+      <button type="submit" class="theme-store__search-submit" aria-label="{{ 'general.accessibility.submit_search' | t }}">
+        {%- render 'icon', name: 'arrow-right' -%}
+      </button>
+    </form>
+
+    <div
+      id="ThemeStoreSuggest-{{ section.id }}"
+      class="theme-store__suggest"
+      role="listbox"
+      aria-label="{{ 'sections.theme_store.suggestions_label' | t }}"
+      hidden
+      data-suggest>
+      <div class="theme-store__suggest-loading" data-suggest-loading hidden>
+        <span>{{ 'sections.theme_store.searching' | t }}</span>
+      </div>
+      <ul class="theme-store__suggest-list" data-suggest-list></ul>
+      <div class="theme-store__suggest-empty" data-suggest-empty hidden>
+        <p>{{ 'sections.theme_store.no_suggestions_html' | t }}</p>
+      </div>
+      <div class="theme-store__suggest-footer" data-suggest-footer hidden>
+        <a class="theme-store__suggest-all" href="#" data-suggest-all>
+          <span data-suggest-all-text>{{ 'sections.theme_store.see_all_results' | t }}</span>
+          {%- render 'icon', name: 'arrow-right' -%}
+        </a>
+      </div>
+    </div>
+  </div>
+
+  {%- comment -%} ============ MOBILE FILTER TOGGLE ============ {%- endcomment -%}
+  <button type="button" class="theme-store__filter-toggle" data-filter-open aria-controls="ThemeStoreSidebar-{{ section.id }}" aria-expanded="false">
+    {%- render 'icon', name: 'menu' -%}
+    <span>{{ 'sections.theme_store.filter_label' | t }}</span>
+  </button>
+
+  <div class="theme-store__layout">
+
+    {%- comment -%} ============ SIDEBAR ============ {%- endcomment -%}
+    <aside id="ThemeStoreSidebar-{{ section.id }}" class="theme-store__sidebar" aria-label="{{ 'sections.theme_store.filter_label' | t }}" data-sidebar>
+      <div class="theme-store__sidebar-header">
+        <span class="theme-store__sidebar-title">{{ 'sections.theme_store.filter_label' | t }}</span>
+        <button type="button" class="theme-store__sidebar-close" data-filter-close aria-label="{{ 'general.accessibility.close_menu' | t }}">
+          {%- render 'icon', name: 'close' -%}
+        </button>
+      </div>
+
+      {%- if categories_heading != blank -%}
+        <h3 class="theme-store__sidebar-heading">{{ categories_heading | escape }}</h3>
+      {%- endif -%}
+
+      <ul class="theme-store__cat-list" role="list">
+        {%- assign default_handle = section.settings.default_collection -%}
+        {%- assign is_default_active = false -%}
+        {%- if active_handle == blank or active_handle == default_handle -%}
+          {%- assign is_default_active = true -%}
+        {%- endif -%}
+        <li>
+          <a href="?cat={{ default_handle | url_encode }}"
+             class="theme-store__cat-link{% if is_default_active %} theme-store__cat-link--active{% endif %}"
+             data-cat-link
+             data-cat-handle="{{ default_handle | escape }}"
+             {% if is_default_active %}aria-current="page"{% endif %}>
+            <span class="theme-store__cat-label">{{ default_label | escape }}</span>
+            {%- if default_collection -%}
+              <span class="theme-store__cat-count" aria-hidden="true">{{ default_collection.products_count }}</span>
+            {%- endif -%}
+          </a>
+        </li>
+
+        {%- for block in section.blocks -%}
+          {%- if block.type == 'category' -%}
+            {%- assign block_collection = collections[block.settings.collection] -%}
+            {%- if block_collection != blank and block_collection.handle != default_handle -%}
+              {%- assign cat_label = block.settings.custom_label | default: block_collection.title -%}
+              {%- assign is_active = false -%}
+              {%- if active_handle == block_collection.handle -%}
+                {%- assign is_active = true -%}
+              {%- endif -%}
+              <li {{ block.shopify_attributes }}>
+                <a href="?cat={{ block_collection.handle | url_encode }}"
+                   class="theme-store__cat-link{% if is_active %} theme-store__cat-link--active{% endif %}"
+                   data-cat-link
+                   data-cat-handle="{{ block_collection.handle | escape }}"
+                   {% if is_active %}aria-current="page"{% endif %}>
+                  <span class="theme-store__cat-label">{{ cat_label | escape }}</span>
+                  <span class="theme-store__cat-count" aria-hidden="true">{{ block_collection.products_count }}</span>
+                </a>
+              </li>
+            {%- endif -%}
+          {%- endif -%}
+        {%- endfor -%}
+      </ul>
+
+      {%- assign feature_count = 0 -%}
+      {%- for block in section.blocks -%}
+        {%- if block.type == 'feature' and block.settings.text != blank -%}
+          {%- assign feature_count = feature_count | plus: 1 -%}
+        {%- endif -%}
+      {%- endfor -%}
+
+      {%- if feature_count > 0 -%}
+        {%- if features_heading != blank -%}
+          <h3 class="theme-store__sidebar-heading theme-store__sidebar-heading--features">{{ features_heading | escape }}</h3>
+        {%- endif -%}
+        <ul class="theme-store__feat-list" role="list">
+          {%- for block in section.blocks -%}
+            {%- if block.type == 'feature' and block.settings.text != blank -%}
+              <li class="theme-store__feat-item" {{ block.shopify_attributes }}>{{ block.settings.text | escape }}</li>
+            {%- endif -%}
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
+    </aside>
+
+    <div class="theme-store__sidebar-overlay" data-sidebar-overlay hidden></div>
+
+    {%- comment -%} ============ PRODUCT GRID ============ {%- endcomment -%}
+    <div class="theme-store__main">
+      {%- if active_collection != blank and active_collection.products.size > 0 -%}
+        {%- paginate active_collection.products by products_per_page -%}
+          <div class="theme-store__grid" role="list">
+            {%- for product in active_collection.products -%}
+              {%- liquid
+                assign featured = product.featured_media
+                assign img_alt = product.title | escape
+                assign price = product.price | money
+              -%}
+              <article class="theme-store__card" role="listitem">
+                <a class="theme-store__card-link" href="{{ product.url }}" aria-label="{{ product.title | escape }}">
+                  <div class="theme-store__card-media">
+                    {%- if featured != blank and featured.preview_image != blank -%}
+                      {{ featured.preview_image | image_url: width: 600 | image_tag:
+                         alt: img_alt,
+                         loading: 'lazy',
+                         widths: '320,480,600,800',
+                         sizes: '(min-width: 990px) 33vw, (min-width: 750px) 50vw, 100vw',
+                         class: 'theme-store__card-image' }}
+                    {%- else -%}
+                      <div class="theme-store__card-placeholder" aria-hidden="true"></div>
+                    {%- endif -%}
+                  </div>
+                  <div class="theme-store__card-body">
+                    <h3 class="theme-store__card-title">{{ product.title | escape }}</h3>
+                    {%- if product.metafields.theme.subtitle.value != blank -%}
+                      <p class="theme-store__card-subtitle">{{ product.metafields.theme.subtitle.value | escape }}</p>
+                    {%- elsif product.type != blank -%}
+                      <p class="theme-store__card-subtitle">{{ product.type | escape }}</p>
+                    {%- endif -%}
+                    <p class="theme-store__card-price">{{ price }}</p>
+                  </div>
+                </a>
+              </article>
+            {%- endfor -%}
+          </div>
+
+          {%- if paginate.pages > 1 -%}
+            <nav class="theme-store__pagination" aria-label="{{ 'sections.theme_store.pagination_label' | t }}">
+              {{ paginate | default_pagination }}
+            </nav>
+          {%- endif -%}
+        {%- endpaginate -%}
+      {%- else -%}
+        <div class="theme-store__empty">
+          <p>{{ 'sections.theme_store.empty_state' | t }}</p>
+          {%- if default_collection != blank -%}
+            <a class="theme-store__empty-link" href="?cat={{ section.settings.default_collection | url_encode }}">
+              {{ 'sections.theme_store.show_all' | t }}
+              {%- render 'icon', name: 'arrow-right' -%}
+            </a>
+          {%- endif -%}
+        </div>
+      {%- endif -%}
+    </div>
+  </div>
+</theme-store>
+
+{% schema %}
+{
+  "name": "t:sections.theme_store.name",
+  "tag": "section",
+  "class": "section-theme-store",
+  "settings": [
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.theme_store.settings.color_scheme.label",
+      "default": "scheme-1"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.theme_store.settings.content_header.content"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.theme_store.settings.heading.label",
+      "default": "Theme Store"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.theme_store.settings.collection_header.content"
+    },
+    {
+      "type": "collection",
+      "id": "default_collection",
+      "label": "t:sections.theme_store.settings.default_collection.label",
+      "info": "t:sections.theme_store.settings.default_collection.info"
+    },
+    {
+      "type": "text",
+      "id": "default_label",
+      "label": "t:sections.theme_store.settings.default_label.label",
+      "default": "Alle Themes"
+    },
+    {
+      "type": "text",
+      "id": "categories_heading",
+      "label": "t:sections.theme_store.settings.categories_heading.label",
+      "default": "Kategorien"
+    },
+    {
+      "type": "text",
+      "id": "features_heading",
+      "label": "t:sections.theme_store.settings.features_heading.label",
+      "default": "Features"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.theme_store.settings.layout_header.content"
+    },
+    {
+      "type": "range",
+      "id": "products_per_row",
+      "label": "t:sections.theme_store.settings.products_per_row.label",
+      "min": 2,
+      "max": 4,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "range",
+      "id": "products_per_page",
+      "label": "t:sections.theme_store.settings.products_per_page.label",
+      "min": 6,
+      "max": 24,
+      "step": 2,
+      "default": 12
+    },
+    {
+      "type": "header",
+      "content": "t:sections.theme_store.settings.spacing_header.content"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "t:sections.theme_store.settings.padding_top.label",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "default": 48
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "t:sections.theme_store.settings.padding_bottom.label",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "default": 64
+    }
+  ],
+  "blocks": [
+    {
+      "type": "category",
+      "name": "t:sections.theme_store.blocks.category.name",
+      "limit": 50,
+      "settings": [
+        {
+          "type": "collection",
+          "id": "collection",
+          "label": "t:sections.theme_store.blocks.category.settings.collection.label"
+        },
+        {
+          "type": "text",
+          "id": "custom_label",
+          "label": "t:sections.theme_store.blocks.category.settings.custom_label.label",
+          "info": "t:sections.theme_store.blocks.category.settings.custom_label.info"
+        }
+      ]
+    },
+    {
+      "type": "feature",
+      "name": "t:sections.theme_store.blocks.feature.name",
+      "limit": 20,
+      "settings": [
+        {
+          "type": "text",
+          "id": "text",
+          "label": "t:sections.theme_store.blocks.feature.settings.text.label"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.theme_store.presets.default.name",
+      "blocks": [
+        { "type": "feature", "settings": { "text": "Mobile optimiert" } },
+        { "type": "feature", "settings": { "text": "SEO-freundlich" } },
+        { "type": "feature", "settings": { "text": "Theme-Editor kompatibel" } },
+        { "type": "feature", "settings": { "text": "Schnelle Ladezeiten" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

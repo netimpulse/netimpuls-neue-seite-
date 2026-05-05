@@ -609,6 +609,81 @@
     "main_cart": {
       "name": "Cart",
       "show_note": "Enable order note field"
+    },
+    "theme_store": {
+      "name": "Theme Store",
+      "settings": {
+        "color_scheme": {
+          "label": "Color scheme"
+        },
+        "content_header": {
+          "content": "Content"
+        },
+        "heading": {
+          "label": "Heading"
+        },
+        "collection_header": {
+          "content": "Collection & sidebar"
+        },
+        "default_collection": {
+          "label": "Master collection (All Themes)",
+          "info": "Shown when the “All Themes” tab is active. Recommended: a smart collection that contains products from any of your category collections."
+        },
+        "default_label": {
+          "label": "“All Themes” tab label"
+        },
+        "categories_heading": {
+          "label": "Categories heading"
+        },
+        "features_heading": {
+          "label": "Features heading"
+        },
+        "layout_header": {
+          "content": "Layout"
+        },
+        "products_per_row": {
+          "label": "Products per row (desktop)"
+        },
+        "products_per_page": {
+          "label": "Products per page"
+        },
+        "spacing_header": {
+          "content": "Spacing"
+        },
+        "padding_top": {
+          "label": "Top padding"
+        },
+        "padding_bottom": {
+          "label": "Bottom padding"
+        }
+      },
+      "blocks": {
+        "category": {
+          "name": "Category",
+          "settings": {
+            "collection": {
+              "label": "Collection"
+            },
+            "custom_label": {
+              "label": "Display name (optional)",
+              "info": "Falls back to the collection title if empty."
+            }
+          }
+        },
+        "feature": {
+          "name": "Feature",
+          "settings": {
+            "text": {
+              "label": "Text"
+            }
+          }
+        }
+      },
+      "presets": {
+        "default": {
+          "name": "Theme Store"
+        }
+      }
     }
   }
 }

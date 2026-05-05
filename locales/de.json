@@ -100,6 +100,18 @@
     },
     "usp_bar": {
       "aria_label": "Vorteile des Shops"
+    },
+    "theme_store": {
+      "search_label": "Themes durchsuchen",
+      "search_placeholder": "Suche Themes, Kategorien, Features…",
+      "suggestions_label": "Suchvorschläge",
+      "searching": "Suche…",
+      "no_suggestions_html": "Keine direkten Treffer. Mit Enter alle Ergebnisse anzeigen.",
+      "see_all_results": "Alle Ergebnisse zeigen",
+      "filter_label": "Filter",
+      "pagination_label": "Seitennavigation",
+      "empty_state": "In dieser Kategorie sind aktuell keine Themes verfügbar.",
+      "show_all": "Alle Themes anzeigen"
     }
   },
   "search": {

@@ -6,6 +6,12 @@
 .section-site-header > * { grid-column: 1 / -1; }
 
 .site-header {
+  /* Fallback color scheme — used if no scheme is populated */
+  --color-background: 255, 255, 255;
+  --color-text: 18, 18, 18;
+  --color-button: 18, 18, 18;
+  --color-button-label: 255, 255, 255;
+
   color: rgb(var(--color-text));
   background-color: rgb(var(--color-background));
   border-bottom: 1px solid rgba(var(--color-text), 0.08);
