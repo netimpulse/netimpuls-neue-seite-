@@ -257,51 +257,6 @@
         },
         "logo_width": {
           "label": "Logo width"
-        },
-        "logo_position": {
-          "label": "Desktop logo position",
-          "options__1": {
-            "label": "Middle left"
-          },
-          "options__2": {
-            "label": "Top left"
-          },
-          "options__3": {
-            "label": "Top center"
-          },
-          "options__4": {
-            "label": "Middle center"
-          }
-        },
-        "menu": {
-          "label": "Menu"
-        },
-        "sticky_header_type": {
-          "label": "Sticky header type",
-          "options__1": {
-            "label": "None"
-          },
-          "options__2": {
-            "label": "On scroll up"
-          },
-          "options__3": {
-            "label": "Always"
-          }
-        },
-        "show_line_separator": {
-          "label": "Show separator line"
-        },
-        "spacing_header": {
-          "content": "Spacing"
-        },
-        "margin_bottom": {
-          "label": "Bottom margin"
-        },
-        "padding_top": {
-          "label": "Top padding"
-        },
-        "padding_bottom": {
-          "label": "Bottom padding"
         }
       },
       "logo": "Text logo",

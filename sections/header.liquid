@@ -3,11 +3,12 @@
 
 {%- liquid
   assign scheme = section.settings.color_scheme
-  assign main_linklist = linklists[section.settings.menu]
-  assign drawer_linklist = linklists[section.settings.drawer_menu] | default: main_linklist
-  assign sticky = section.settings.sticky_header_type
-  assign header_logo = settings.logo | default: section.settings.logo_image | default: section.settings.logo
-  assign logo_width = settings.logo_width | default: section.settings.logo_width | default: 140
+  assign main_linklist = linklists[section.settings.main_menu]
+  assign drawer_linklist = linklists[section.settings.drawer_menu]
+  assign show_main_nav = section.settings.show_main_nav
+  assign sticky = section.settings.sticky_header
+  assign header_logo = section.settings.logo_image | default: section.settings.logo
+  assign logo_width = section.settings.logo_width | default: 140
   assign image_width = logo_width | times: 2
 -%}
 
@@ -22,10 +23,8 @@
   {%- endif -%}
 
   #shopify-section-{{ section.id }} {
-    --sqe-logo-width: {{ logo_width }}px;
-    --sqe-header-padding-top: {{ section.settings.padding_top | default: 16 }}px;
-    --sqe-header-padding-bottom: {{ section.settings.padding_bottom | default: 16 }}px;
-    --sqe-header-margin-bottom: {{ section.settings.margin_bottom | default: 0 }}px;
+    --logo-width: {{ logo_width }}px;
+    --header-min-height: {{ logo_width | divided_by: 2 | at_least: 64 | at_most: 92 }}px;
   }
 {% endstyle %}
 
@@ -47,12 +46,23 @@
   </a>
 {%- endcapture -%}
 
-{% liquid
-  assign header_tag = 'div'
-  if sticky != 'none'
-    assign header_tag = 'sticky-header'
-  endif
-%}
+    {%- comment -%} CENTER: logo + (optional) main nav {%- endcomment -%}
+    <div class="site-header__center">
+      {%- if header_logo != blank -%}
+        {%- assign logo_alt = header_logo.alt | default: shop.name | escape -%}
+        <a href="{{ routes.root_url }}" class="site-header__logo-link" aria-label="{{ shop.name | escape }}">
+          {{ header_logo | image_url: width: image_width | image_tag:
+             alt: logo_alt,
+             loading: 'eager',
+             class: 'site-header__logo',
+             widths: '90,120,140,180,240,280,360,420',
+             sizes: '(min-width: 990px) var(--logo-width), min(42vw, var(--logo-width))' }}
+        </a>
+      {%- else -%}
+        <a href="{{ routes.root_url }}" class="site-header__logo-link site-header__logo-text">
+          <span>{{ shop.name }}</span>
+        </a>
+      {%- endif -%}
 
 <{{ header_tag }}
   {% if header_tag == 'sticky-header' %}data-sticky-type="{{ sticky }}"{% endif %}
@@ -219,22 +229,32 @@
   </div>
 </{{ header_tag }}>
 
-{%- if request.page_type == 'index' -%}
-  {% assign potential_action_target = request.origin | append: routes.search_url | append: '?q={search_term_string}' %}
-  <script type="application/ld+json">
-    {
-      "@context": "http://schema.org",
-      "@type": "WebSite",
-      "name": {{ shop.name | json }},
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": {{ potential_action_target | json }},
-        "query-input": "required name=search_term_string"
-      },
-      "url": {{ request.origin | append: page.url | json }}
-    }
-  </script>
-{%- endif -%}
+  {%- comment -%} ============ SEARCH DRAWER ============ {%- endcomment -%}
+  <div id="HeaderSearch" class="site-search" aria-hidden="true" hidden>
+    <div class="site-search__overlay" data-search-close></div>
+    <div class="site-search__panel" role="dialog" aria-modal="true" aria-label="{{ 'general.search.title' | t }}">
+      <form action="{{ routes.search_url }}" method="get" role="search" class="site-search__form">
+        <label for="HeaderSearchInput" class="visually-hidden">{{ 'general.search.title' | t }}</label>
+        <input id="HeaderSearchInput"
+               type="search"
+               name="q"
+               class="site-search__input"
+               placeholder="{{ 'general.search.placeholder' | t }}"
+               autocomplete="off"
+               autocorrect="off"
+               spellcheck="false">
+        <input type="hidden" name="options[prefix]" value="last">
+        <input type="hidden" name="type" value="product,page,article">
+        <button type="submit" class="site-search__submit" aria-label="{{ 'general.accessibility.submit_search' | t }}">
+          {%- render 'icon', name: 'search' -%}
+        </button>
+        <button type="button" class="site-header__icon-btn site-search__close" data-search-close aria-label="{{ 'general.accessibility.close_search' | t }}">
+          {%- render 'icon', name: 'close' -%}
+        </button>
+      </form>
+    </div>
+  </div>
+</site-header>
 
 {% schema %}
 {
@@ -246,22 +266,29 @@
   },
   "settings": [
     {
-      "type": "select",
-      "id": "logo_position",
-      "options": [
-        { "value": "middle-left", "label": "t:sections.header.settings.logo_position.options__1.label" },
-        { "value": "top-left", "label": "t:sections.header.settings.logo_position.options__2.label" },
-        { "value": "top-center", "label": "t:sections.header.settings.logo_position.options__3.label" },
-        { "value": "middle-center", "label": "t:sections.header.settings.logo_position.options__4.label" }
-      ],
-      "default": "middle-left",
-      "label": "t:sections.header.settings.logo_position.label"
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.header.settings.color_scheme.label",
+      "default": "scheme-1"
     },
     {
-      "type": "link_list",
-      "id": "menu",
-      "default": "main-menu",
-      "label": "t:sections.header.settings.menu.label"
+      "type": "header",
+      "content": "t:sections.header.logo"
+    },
+    {
+      "type": "image_picker",
+      "id": "logo_image",
+      "label": "t:sections.header.logo_image"
+    },
+    {
+      "type": "range",
+      "id": "logo_width",
+      "min": 80,
+      "max": 260,
+      "step": 10,
+      "unit": "px",
+      "label": "t:sections.header.logo_width",
+      "default": 140
     },
     {
       "type": "link_list",

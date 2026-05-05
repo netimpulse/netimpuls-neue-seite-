@@ -182,51 +182,6 @@
         },
         "logo_width": {
           "label": "Logo-Breite"
-        },
-        "logo_position": {
-          "label": "Desktop-Logo-Position",
-          "options__1": {
-            "label": "Mittig links"
-          },
-          "options__2": {
-            "label": "Oben links"
-          },
-          "options__3": {
-            "label": "Oben zentriert"
-          },
-          "options__4": {
-            "label": "Mittig zentriert"
-          }
-        },
-        "menu": {
-          "label": "Menü"
-        },
-        "sticky_header_type": {
-          "label": "Sticky-Header-Typ",
-          "options__1": {
-            "label": "Nicht sticky"
-          },
-          "options__2": {
-            "label": "Beim Hochscrollen"
-          },
-          "options__3": {
-            "label": "Immer sticky"
-          }
-        },
-        "show_line_separator": {
-          "label": "Trennlinie anzeigen"
-        },
-        "spacing_header": {
-          "content": "Abstände"
-        },
-        "margin_bottom": {
-          "label": "Abstand unten"
-        },
-        "padding_top": {
-          "label": "Abstand oben"
-        },
-        "padding_bottom": {
-          "label": "Abstand unten"
         }
       },
       "logo": "Schrift-Logo",
