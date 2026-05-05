@@ -220,7 +220,8 @@
           "content": "Logo"
         },
         "logo": {
-          "label": "Logo"
+          "label": "Logo",
+          "info": "Legacy setting: keep empty when using Image logo."
         },
         "logo_height": {
           "label": "Logo height"
@@ -250,8 +251,17 @@
         },
         "sticky_header": {
           "label": "Sticky header"
+        },
+        "logo_image": {
+          "label": "Image logo"
+        },
+        "logo_width": {
+          "label": "Logo width"
         }
-      }
+      },
+      "logo": "Text logo",
+      "logo_image": "Image logo",
+      "logo_width": "Logo width"
     },
     "footer": {
       "name": "Footer",

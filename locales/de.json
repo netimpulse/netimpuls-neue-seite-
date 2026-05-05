@@ -127,10 +127,7 @@
     "back_to_shopping": "Zurück zum Shop"
   },
   "blog": {
-    "article_comments": {
-      "one": "{{ count }} Kommentar",
-      "other": "{{ count }} Kommentare"
-    },
+    "article_comments": "Kommentare",
     "article_metadata_html": "<span>{{ date }}</span> &middot; <span>{{ author }}</span>",
     "comment_form_title": "Kommentar schreiben",
     "comment_form_name": "Name",
@@ -140,5 +137,13 @@
   },
   "collections": {
     "title": "Kollektionen"
+  },
+  "customers": {
+    "login": {
+      "email": "E-Mail",
+      "password": "Passwort",
+      "submit": "Anmelden",
+      "title": "Einloggen"
+    }
   }
 }
