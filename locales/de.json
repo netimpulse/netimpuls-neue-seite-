@@ -19,7 +19,13 @@
     },
     "search": {
       "title": "Suche",
-      "placeholder": "Produkte, Kategorien, Beiträge…"
+      "placeholder": "Produkte, Kategorien, Beiträge…",
+      "submit": "Suchen",
+      "reset": "Suchbegriff löschen",
+      "loading": "Lädt",
+      "suggestions": "Vorschläge",
+      "no_suggestions": "Keine Vorschläge gefunden.",
+      "search_for": "Nach „{{ terms }}“ suchen"
     },
     "slideshow": {
       "next": "Nächste Folie",
@@ -127,10 +133,7 @@
     "back_to_shopping": "Zurück zum Shop"
   },
   "blog": {
-    "article_comments": {
-      "one": "{{ count }} Kommentar",
-      "other": "{{ count }} Kommentare"
-    },
+    "article_comments": "Kommentare",
     "article_metadata_html": "<span>{{ date }}</span> &middot; <span>{{ author }}</span>",
     "comment_form_title": "Kommentar schreiben",
     "comment_form_name": "Name",
@@ -140,5 +143,13 @@
   },
   "collections": {
     "title": "Kollektionen"
+  },
+  "customers": {
+    "login": {
+      "email": "E-Mail",
+      "password": "Passwort",
+      "submit": "Anmelden",
+      "title": "Einloggen"
+    }
   }
 }
