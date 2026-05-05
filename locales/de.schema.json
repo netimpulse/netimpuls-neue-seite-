@@ -145,7 +145,8 @@
           "content": "Logo"
         },
         "logo": {
-          "label": "Logo"
+          "label": "Logo",
+          "info": "Legacy-Einstellung: leer lassen, wenn das Bild-Logo genutzt wird."
         },
         "logo_height": {
           "label": "Logo-Höhe"
@@ -161,8 +162,8 @@
           "label": "Hauptnavigation anzeigen"
         },
         "drawer_menu": {
-          "label": "Burger-Drawer-Menü (zweites Menü)",
-          "info": "Öffnet sich über das Burger-Icon. Nutze das für Kategorien wie Damen, Herren, Jacken."
+          "label": "Mobiles Drawer-Menü",
+          "info": "Fällt auf das Hauptmenü zurück, wenn leer."
         },
         "drawer_promo_heading": {
           "label": "Drawer-Promo-Überschrift"
@@ -175,8 +176,62 @@
         },
         "sticky_header": {
           "label": "Sticky Header"
+        },
+        "logo_image": {
+          "label": "Bild-Logo"
+        },
+        "logo_width": {
+          "label": "Logo-Breite"
+        },
+        "logo_position": {
+          "label": "Desktop-Logo-Position",
+          "options__1": {
+            "label": "Mittig links"
+          },
+          "options__2": {
+            "label": "Oben links"
+          },
+          "options__3": {
+            "label": "Oben zentriert"
+          },
+          "options__4": {
+            "label": "Mittig zentriert"
+          }
+        },
+        "menu": {
+          "label": "Menü"
+        },
+        "sticky_header_type": {
+          "label": "Sticky-Header-Typ",
+          "options__1": {
+            "label": "Nicht sticky"
+          },
+          "options__2": {
+            "label": "Beim Hochscrollen"
+          },
+          "options__3": {
+            "label": "Immer sticky"
+          }
+        },
+        "show_line_separator": {
+          "label": "Trennlinie anzeigen"
+        },
+        "spacing_header": {
+          "content": "Abstände"
+        },
+        "margin_bottom": {
+          "label": "Abstand unten"
+        },
+        "padding_top": {
+          "label": "Abstand oben"
+        },
+        "padding_bottom": {
+          "label": "Abstand unten"
         }
-      }
+      },
+      "logo": "Schrift-Logo",
+      "logo_image": "Bild-Logo",
+      "logo_width": "Logo-Breite"
     },
     "footer": {
       "name": "Footer",
