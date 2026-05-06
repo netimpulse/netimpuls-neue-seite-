@@ -286,4 +286,27 @@
         this.classList.add('theme-store--sidebar-open');
         if (this.sidebarOverlay) this.sidebarOverlay.hidden = false;
         if (this.openBtn) this.openBtn.setAttribute('aria-expanded', 'true');
-        document.body.cl
+        document.body.classList.add('ts-no-scroll');
+        document.body.style.overflow = 'hidden';
+        if (this.closeBtn) {
+          var btn = this.closeBtn;
+          requestAnimationFrame(function () { btn.focus(); });
+        }
+      } else {
+        this.classList.remove('theme-store--sidebar-open');
+        if (this.openBtn) {
+          this.openBtn.setAttribute('aria-expanded', 'false');
+          this.openBtn.focus();
+        }
+        document.body.classList.remove('ts-no-scroll');
+        document.body.style.overflow = '';
+        var self = this;
+        setTimeout(function () { if (self.sidebarOverlay) self.sidebarOverlay.hidden = true; }, 250);
+      }
+    }
+  }
+
+  if (!customElements.get('theme-store')) {
+    customElements.define('theme-store', ThemeStore);
+  }
+})();
