@@ -107,15 +107,42 @@
     lockMainHeight() {
       if (!this.main) return;
       var self = this;
-      // Wait one frame so images/layouts settle before we measure.
-      requestAnimationFrame(function () {
+      var maxObserved = 0;
+      var doLock = function () {
         var h = self.main.offsetHeight;
-        if (h > 0) self.main.style.minHeight = h + 'px';
-      });
+        if (h > maxObserved) {
+          maxObserved = h;
+          self.main.style.minHeight = h + 'px';
+        }
+      };
+      // Re-measure several times: the first measurement may be too small if
+      // images haven't decoded yet. We track the MAX observed height so the
+      // lock only grows; an empty filter result then keeps the bigger value.
+      var schedule = function () {
+        requestAnimationFrame(doLock);
+        setTimeout(doLock, 200);
+        setTimeout(doLock, 800);
+      };
+      if (document.readyState === 'complete') {
+        schedule();
+      } else {
+        window.addEventListener('load', schedule, { once: true });
+      }
+      // Also observe natural resizes (image decoding, font swap, viewport changes).
+      if (typeof ResizeObserver !== 'undefined') {
+        try {
+          this._mainObserver = new ResizeObserver(function () { doLock(); });
+          this._mainObserver.observe(this.main);
+        } catch (e) { /* ignore */ }
+      }
     }
 
     disconnectedCallback() {
       window.removeEventListener('popstate', this.popstateHandler);
+      if (this._mainObserver) {
+        try { this._mainObserver.disconnect(); } catch (e) {}
+        this._mainObserver = null;
+      }
       if (document.body.classList.contains('ts-no-scroll')) {
         document.body.classList.remove('ts-no-scroll');
         document.body.style.overflow = '';
@@ -259,27 +286,4 @@
         this.classList.add('theme-store--sidebar-open');
         if (this.sidebarOverlay) this.sidebarOverlay.hidden = false;
         if (this.openBtn) this.openBtn.setAttribute('aria-expanded', 'true');
-        document.body.classList.add('ts-no-scroll');
-        document.body.style.overflow = 'hidden';
-        if (this.closeBtn) {
-          var btn = this.closeBtn;
-          requestAnimationFrame(function () { btn.focus(); });
-        }
-      } else {
-        this.classList.remove('theme-store--sidebar-open');
-        if (this.openBtn) {
-          this.openBtn.setAttribute('aria-expanded', 'false');
-          this.openBtn.focus();
-        }
-        document.body.classList.remove('ts-no-scroll');
-        document.body.style.overflow = '';
-        var self = this;
-        setTimeout(function () { if (self.sidebarOverlay) self.sidebarOverlay.hidden = true; }, 250);
-      }
-    }
-  }
-
-  if (!customElements.get('theme-store')) {
-    customElements.define('theme-store', ThemeStore);
-  }
-})();
+        document.body.cl
