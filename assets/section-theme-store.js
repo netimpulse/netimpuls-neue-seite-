@@ -86,8 +86,7 @@
       this.input = this.querySelector('[data-search-input]');
       this.clearBtn = this.querySelector('[data-search-clear]');
       this.grid = this.querySelector('[data-grid]');
-      this.noResults = this.querySelector('[data-no-results]');
-      this.resetBtn = this.querySelector('[data-reset-filters]');
+      this.main = this.querySelector('.theme-store__main');
       this.cards = Array.prototype.slice.call(this.querySelectorAll('[data-product-card]'));
       this.catLinks = Array.prototype.slice.call(this.querySelectorAll('[data-cat-link]'));
 
@@ -96,11 +95,23 @@
 
       this.bindSearch();
       this.bindCatLinks();
-      this.bindReset();
       this.bindSidebar();
       this.bindHistory();
       this.applyFromUrl();
       this.updateCounts();
+      // Lock the main column to its initial height so the layout stays
+      // stable when the user filters down to 0 visible cards.
+      this.lockMainHeight();
+    }
+
+    lockMainHeight() {
+      if (!this.main) return;
+      var self = this;
+      // Wait one frame so images/layouts settle before we measure.
+      requestAnimationFrame(function () {
+        var h = self.main.offsetHeight;
+        if (h > 0) self.main.style.minHeight = h + 'px';
+      });
     }
 
     disconnectedCallback() {
@@ -190,31 +201,13 @@
 
     /* ================ Filtering ================ */
     applyFilters() {
-      var visible = 0;
       var tag = this.activeTag;
       var query = this.activeQuery;
       this.cards.forEach(function (card) {
         var matchTag = tagMatch(tag, card.dataset.productTags);
         var matchSearch = searchMatch(query, card.dataset.productSearch);
-        if (matchTag && matchSearch) {
-          card.removeAttribute('hidden');
-          visible++;
-        } else {
-          card.setAttribute('hidden', '');
-        }
-      });
-      if (this.noResults) this.noResults.hidden = visible !== 0 || this.cards.length === 0;
-      if (this.grid) this.grid.classList.toggle('theme-store__grid--empty', visible === 0);
-    }
-
-    bindReset() {
-      if (!this.resetBtn) return;
-      var self = this;
-      this.resetBtn.addEventListener('click', function () {
-        if (self.input) self.input.value = '';
-        if (self.clearBtn) self.clearBtn.hidden = true;
-        self.activeQuery = '';
-        self.setActiveTag('', { pushUrl: true });
+        if (matchTag && matchSearch) card.removeAttribute('hidden');
+        else card.setAttribute('hidden', '');
       });
     }
 
@@ -290,3 +283,4 @@
     customElements.define('theme-store', ThemeStore);
   }
 })();
+                                                                                                                                                                                                                                      

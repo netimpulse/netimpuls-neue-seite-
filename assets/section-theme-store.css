@@ -368,33 +368,8 @@
 }
 
 
-/* ============ Client-side filter: card hide + states ============ */
+/* ============ Client-side filter: hide cards ============ */
 .theme-store__card[hidden] { display: none !important; }
-.theme-store__grid--empty { display: none; }
-.theme-store__no-results {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 2rem;
-  background: rgba(var(--color-text), 0.04);
-  border-radius: 1rem;
-}
-.theme-store__no-results-reset {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0;
-  background: transparent;
-  border: none;
-  color: inherit;
-  font-family: inherit;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  cursor: pointer;
-  text-decoration: underline;
-}
-.theme-store__no-results-reset .icon { width: 1rem; height: 1rem; }
 
 /* Search clear button */
 .theme-store__search-clear {
