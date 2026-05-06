@@ -1,0 +1,75 @@
+{%- comment -%}
+  Dawn-compatible header search trigger and modal.
+  Accepts:
+  - input_id: unique input id for multiple header search instances.
+{%- endcomment -%}
+
+<details-modal class="header__search">
+  <details>
+    <summary
+      class="header__icon header__icon--search header__icon--summary link focus-inset modal__toggle"
+      aria-haspopup="dialog"
+      aria-label="{{ 'general.accessibility.open_search' | t }}"
+    >
+      <span class="svg-wrapper">{%- render 'icon', name: 'search' -%}</span>
+      <span class="svg-wrapper header__icon-close">{%- render 'icon', name: 'close' -%}</span>
+    </summary>
+    <div class="search-modal modal__content gradient" role="dialog" aria-modal="true" aria-label="{{ 'general.search.title' | t }}">
+      <div class="modal-overlay"></div>
+      <div class="search-modal__content" tabindex="-1">
+        {%- if settings.predictive_search_enabled -%}
+          <predictive-search class="search-modal__form" data-loading-text="{{ 'general.search.loading' | t }}">
+        {%- else -%}
+          <search-form class="search-modal__form">
+        {%- endif -%}
+          <form action="{{ routes.search_url }}" method="get" role="search" class="search search-modal__form">
+            <div class="field">
+              <input
+                class="search__input field__input"
+                id="{{ input_id }}"
+                type="search"
+                name="q"
+                value="{{ search.terms | escape }}"
+                placeholder="{{ 'general.search.title' | t }}"
+                {%- if settings.predictive_search_enabled -%}
+                  role="combobox"
+                  aria-expanded="false"
+                  aria-owns="predictive-search-results"
+                  aria-controls="predictive-search-results"
+                  aria-haspopup="listbox"
+                  aria-autocomplete="list"
+                  autocorrect="off"
+                  autocomplete="off"
+                  autocapitalize="off"
+                  spellcheck="false"
+                {%- endif -%}
+              >
+              <label class="field__label" for="{{ input_id }}">{{ 'general.search.title' | t }}</label>
+              <input type="hidden" name="options[prefix]" value="last">
+              <button type="reset" class="reset__button field__button{% if search.terms == blank %} hidden{% endif %}" aria-label="{{ 'general.search.reset' | t }}">
+                {%- render 'icon', name: 'close' -%}
+              </button>
+              <button class="search__button field__button" aria-label="{{ 'general.search.submit' | t }}">
+                {%- render 'icon', name: 'search' -%}
+              </button>
+            </div>
+
+            {%- if settings.predictive_search_enabled -%}
+              <div class="predictive-search predictive-search--header" tabindex="-1" data-predictive-search>
+                <div class="predictive-search__loading-state" hidden>{{ 'general.search.loading' | t }}</div>
+              </div>
+              <span class="predictive-search-status visually-hidden" role="status" aria-hidden="true"></span>
+            {%- endif -%}
+          </form>
+        {%- if settings.predictive_search_enabled -%}
+          </predictive-search>
+        {%- else -%}
+          </search-form>
+        {%- endif -%}
+        <button type="button" class="search-modal__close-button modal__close-button link link--text focus-inset" aria-label="{{ 'general.accessibility.close_search' | t }}">
+          {%- render 'icon', name: 'close' -%}
+        </button>
+      </div>
+    </div>
+  </details>
+</details-modal>

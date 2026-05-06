@@ -202,6 +202,9 @@
           },
           "options__3": {
             "label": "Immer sichtbar"
+          },
+          "options__4": {
+            "label": "Logo verkleinern"
           }
         },
         "show_line_separator": {
@@ -218,6 +221,72 @@
         },
         "padding_bottom": {
           "label": "Abstand unten"
+        },
+        "mobile_logo_position": {
+          "options__1": {
+            "label": "Zentriert"
+          },
+          "options__2": {
+            "label": "Links"
+          },
+          "label": "Logo-Position auf Mobilgeräten"
+        },
+        "menu": {
+          "label": "Menü"
+        },
+        "menu_type_desktop": {
+          "options__1": {
+            "label": "Dropdown"
+          },
+          "options__2": {
+            "label": "Mega-Menü"
+          },
+          "options__3": {
+            "label": "Drawer"
+          },
+          "label": "Desktop-Menütyp"
+        },
+        "menu_color_scheme": {
+          "label": "Farbschema des Menüs"
+        },
+        "icon_color": {
+          "label": "Icon-Farbe"
+        },
+        "header__1": {
+          "content": "Farben"
+        },
+        "header__utilities": {
+          "content": "Funktionen"
+        },
+        "enable_country_selector": {
+          "label": "Länder-/Regionsauswahl aktivieren",
+          "info": "Füge Länder/Regionen in deinen Market-Einstellungen hinzu."
+        },
+        "enable_language_selector": {
+          "label": "Sprachauswahl aktivieren",
+          "info": "Füge Sprachen in deinen Spracheinstellungen hinzu."
+        },
+        "enable_customer_avatar": {
+          "label": "Kundenavatar aktivieren",
+          "info": "Zeigt den Kundenavatar, wenn verfügbar."
+        },
+        "logo_position": {
+          "options__1": {
+            "label": "Mittig links"
+          },
+          "options__2": {
+            "label": "Oben links"
+          },
+          "options__3": {
+            "label": "Oben zentriert"
+          },
+          "options__4": {
+            "label": "Mittig zentriert"
+          },
+          "label": "Logo-Position auf Desktop"
+        },
+        "logo_help": {
+          "content": "Das globale Logo aus den Theme-Einstellungen wird verwendet, wenn es gesetzt ist."
         }
       },
       "logo": "Schrift-Logo",
@@ -588,7 +657,7 @@
         },
         "collection": {
           "label": "Kollektion (z.B. „Alle Themes\")",
-          "info": "Wird verwendet, wenn die Section nicht direkt auf einem Kollektions-Template platziert ist. Auf einer Kollektions-Seite (/collections/<handle>) wird automatisch die aktuelle Kollektion verwendet. Tags der Kollektion werden automatisch als Filter angezeigt."
+          "info": "Wird verwendet, wenn die Section nicht direkt auf einem Kollektions-Template platziert ist. Auf einer Kollektions-Seite (/collections/&lt;handle&gt;) wird automatisch die aktuelle Kollektion verwendet. Tags der Kollektion werden automatisch als Filter angezeigt."
         },
         "default_label": {
           "label": "Label für „Alle Themes\"-Tab"
@@ -653,6 +722,17 @@
         "default": {
           "name": "Theme Store"
         }
+      }
+    },
+    "all": {
+      "colors": {
+        "label": "Farbschema"
+      },
+      "spacing": "Abstände",
+      "padding": {
+        "section_padding_heading": "Innenabstand",
+        "padding_top": "Abstand oben",
+        "padding_bottom": "Abstand unten"
       }
     }
   },
