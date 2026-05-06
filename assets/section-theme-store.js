@@ -1,12 +1,8 @@
-/* Theme Store — predictive search dropdown + sidebar drawer */
+/* Theme Store — client-side tag + search filter
+   No page reloads. Tag clicks and search input both filter the same grid.
+   URL state mirrored via ?tag=<tag> with history.pushState. */
 (function () {
   'use strict';
-
-  var ROOT_URL = (window.Shopify && window.Shopify.routes && window.Shopify.routes.root) || '/';
-  function rootify(path) {
-    if (ROOT_URL.length > 1) return ROOT_URL.replace(/\/$/, '') + path;
-    return path;
-  }
 
   function debounce(fn, ms) {
     var t;
@@ -17,290 +13,241 @@
     };
   }
 
-  function escapeHtml(s) {
-    return String(s == null ? '' : s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
   function tokenize(q) {
-    return String(q || '').trim().split(/\s+/).filter(function (t) { return t.length > 0; });
+    return String(q || '').toLowerCase().trim().split(/\s+/).filter(function (t) { return t.length > 0; });
   }
 
-  function highlight(text, tokens) {
-    var safe = escapeHtml(text);
-    if (!tokens || tokens.length === 0) return safe;
-    var pattern = tokens
-      .map(function (t) { return t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); })
-      .filter(function (t) { return t.length > 0; })
-      .join('|');
-    if (!pattern) return safe;
-    try {
-      var re = new RegExp('(' + pattern + ')', 'ig');
-      return safe.replace(re, '<mark>$1</mark>');
-    } catch (e) {
-      return safe;
+  /* Damerau-Levenshtein distance, capped at limit for early exit. */
+  function editDistance(a, b, limit) {
+    if (a === b) return 0;
+    var la = a.length, lb = b.length;
+    if (Math.abs(la - lb) > limit) return limit + 1;
+    if (la === 0) return lb;
+    if (lb === 0) return la;
+    var prev = new Array(lb + 1);
+    var curr = new Array(lb + 1);
+    for (var j = 0; j <= lb; j++) prev[j] = j;
+    for (var i = 1; i <= la; i++) {
+      curr[0] = i;
+      var rowMin = curr[0];
+      for (var j = 1; j <= lb; j++) {
+        var cost = a.charCodeAt(i - 1) === b.charCodeAt(j - 1) ? 0 : 1;
+        curr[j] = Math.min(curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost);
+        if (i > 1 && j > 1 && a.charCodeAt(i - 1) === b.charCodeAt(j - 2) && a.charCodeAt(i - 2) === b.charCodeAt(j - 1)) {
+          curr[j] = Math.min(curr[j], prev[j - 2] !== undefined ? prev[j - 2] + cost : Infinity);
+        }
+        if (curr[j] < rowMin) rowMin = curr[j];
+      }
+      if (rowMin > limit) return limit + 1;
+      var tmp = prev; prev = curr; curr = tmp;
     }
+    return prev[lb];
   }
 
-  /* Single suggest call. Pass `wildcard: true` to append a star to each token
-     for prefix-style matching — Shopify storefront search supports this for
-     better partial-match / typo tolerance. */
-  function fetchSuggest(query, opts) {
-    opts = opts || {};
-    var q = query;
-    if (opts.wildcard) {
-      var toks = tokenize(query).map(function (t) { return t.length >= 2 ? t + '*' : t; });
-      q = toks.join(' ');
+  /* Token matches the search target (any single word in target) when
+       - the token is a substring, OR
+       - any word in target has edit distance ≤ limit (proportional to token length). */
+  function tokenMatches(token, words) {
+    for (var i = 0; i < words.length; i++) {
+      var w = words[i];
+      if (!w) continue;
+      if (w.indexOf(token) >= 0) return true;
+      if (token.length >= 4) {
+        var limit = token.length >= 7 ? 2 : 1;
+        if (editDistance(token, w, limit) <= limit) return true;
+        // also try substring of word against token (handles "fashon" → "fashion": w='fashion', t='fashon', distance=1)
+      }
     }
-    var params = new URLSearchParams();
-    params.set('q', q);
-    params.set('resources[type]', 'product');
-    params.set('resources[limit]', String(opts.limit || 8));
-    params.set('resources[options][unavailable_products]', 'last');
-    return fetch(rootify('/search/suggest.json') + '?' + params.toString(), {
-      headers: { 'Accept': 'application/json' },
-      credentials: 'same-origin'
-    }).then(function (r) {
-      if (!r.ok) throw new Error('suggest http ' + r.status);
-      return r.json();
-    }).then(function (data) {
-      var products = (data && data.resources && data.resources.results && data.resources.results.products) || [];
-      return products;
-    });
+    return false;
   }
 
-  function renderResults(els, products, query) {
-    var list = els.list;
+  function searchMatch(query, target) {
     var tokens = tokenize(query);
-    list.innerHTML = '';
-    if (!products || products.length === 0) {
-      els.empty.hidden = false;
-      els.footer.hidden = true;
-      return;
+    if (tokens.length === 0) return true;
+    var words = String(target || '').toLowerCase().split(/[^a-z0-9äöüß]+/i).filter(function (w) { return w.length > 0; });
+    for (var i = 0; i < tokens.length; i++) {
+      if (!tokenMatches(tokens[i], words)) return false;
     }
-    els.empty.hidden = true;
-    var frag = document.createDocumentFragment();
-    products.forEach(function (p, idx) {
-      var li = document.createElement('li');
-      var a = document.createElement('a');
-      a.className = 'theme-store__suggest-item';
-      a.href = p.url || '#';
-      a.setAttribute('role', 'option');
-      a.id = 'ts-suggest-opt-' + idx;
-      a.tabIndex = -1;
+    return true;
+  }
 
-      var imgSrc = '';
-      if (typeof p.image === 'string') imgSrc = p.image;
-      else if (p.image && p.image.url) imgSrc = p.image.url;
-      else if (p.featured_image) imgSrc = p.featured_image;
-
-      if (imgSrc) {
-        // Ask Shopify CDN for a small, retina-sized variant (44px @2x = 88).
-        // Replace any existing width param; otherwise append.
-        var sized = imgSrc;
-        try {
-          if (/cdn\.shopify\.com|cdn\.shopifycdn\.net/.test(sized)) {
-            if (/[?&]width=/.test(sized)) {
-              sized = sized.replace(/([?&])width=\d+/, '$1width=88');
-            } else {
-              sized += (sized.indexOf('?') >= 0 ? '&' : '?') + 'width=88';
-            }
-          }
-        } catch (e) { /* keep original */ }
-
-        var img = document.createElement('img');
-        img.className = 'theme-store__suggest-img';
-        img.alt = '';
-        img.loading = 'lazy';
-        img.width = 44;
-        img.height = 44;
-        img.src = sized;
-        a.appendChild(img);
-      } else {
-        var ph = document.createElement('span');
-        ph.className = 'theme-store__suggest-img';
-        a.appendChild(ph);
-      }
-
-      var text = document.createElement('span');
-      text.className = 'theme-store__suggest-text';
-      var title = document.createElement('span');
-      title.className = 'theme-store__suggest-title';
-      title.innerHTML = highlight(p.title || '', tokens);
-      text.appendChild(title);
-      var meta = document.createElement('span');
-      meta.className = 'theme-store__suggest-meta';
-      var metaParts = [];
-      if (p.product_type && String(p.product_type).trim()) metaParts.push(escapeHtml(p.product_type));
-      if (p.vendor && String(p.vendor).trim()) metaParts.push(escapeHtml(p.vendor));
-      if (typeof p.price === 'string' && p.price.trim()) metaParts.push(p.price);
-      if (metaParts.length > 0) {
-        meta.innerHTML = metaParts.join(' · ');
-        text.appendChild(meta);
-      }
-      a.appendChild(text);
-
-      li.appendChild(a);
-      frag.appendChild(li);
-    });
-    list.appendChild(frag);
-    els.footer.hidden = false;
+  function tagMatch(activeTag, productTags) {
+    if (!activeTag) return true;
+    var tags = String(productTags || '').toLowerCase().split(/\s+/);
+    for (var i = 0; i < tags.length; i++) {
+      if (tags[i] === activeTag) return true;
+    }
+    return false;
   }
 
   class ThemeStore extends HTMLElement {
     connectedCallback() {
       this.sectionId = this.dataset.sectionId;
-      this.form = this.querySelector('[data-search-form]');
       this.input = this.querySelector('[data-search-input]');
-      this.suggestEls = {
-        wrap: this.querySelector('[data-suggest]'),
-        list: this.querySelector('[data-suggest-list]'),
-        loading: this.querySelector('[data-suggest-loading]'),
-        empty: this.querySelector('[data-suggest-empty]'),
-        footer: this.querySelector('[data-suggest-footer]'),
-        all: this.querySelector('[data-suggest-all]')
-      };
-      this.sidebar = this.querySelector('[data-sidebar]');
-      this.sidebarOverlay = this.querySelector('[data-sidebar-overlay]');
-      this.openBtn = this.querySelector('[data-filter-open]');
-      this.closeBtn = this.querySelector('[data-filter-close]');
+      this.clearBtn = this.querySelector('[data-search-clear]');
+      this.grid = this.querySelector('[data-grid]');
+      this.noResults = this.querySelector('[data-no-results]');
+      this.resetBtn = this.querySelector('[data-reset-filters]');
+      this.cards = Array.prototype.slice.call(this.querySelectorAll('[data-product-card]'));
+      this.catLinks = Array.prototype.slice.call(this.querySelectorAll('[data-cat-link]'));
 
-      this.activeIndex = -1;
-      this.handleKeyDown = this.handleKeyDown.bind(this);
-      this.handleDocumentClick = this.handleDocumentClick.bind(this);
+      this.activeTag = '';
+      this.activeQuery = '';
 
       this.bindSearch();
+      this.bindCatLinks();
+      this.bindReset();
       this.bindSidebar();
+      this.bindHistory();
+      this.applyFromUrl();
+      this.updateCounts();
     }
 
     disconnectedCallback() {
-      document.removeEventListener('keydown', this.handleKeyDown);
-      document.removeEventListener('click', this.handleDocumentClick);
+      window.removeEventListener('popstate', this.popstateHandler);
       if (document.body.classList.contains('ts-no-scroll')) {
         document.body.classList.remove('ts-no-scroll');
         document.body.style.overflow = '';
       }
     }
 
+    /* ================ URL state ================ */
+    bindHistory() {
+      var self = this;
+      this.popstateHandler = function () { self.applyFromUrl(); };
+      window.addEventListener('popstate', this.popstateHandler);
+    }
+
+    applyFromUrl() {
+      var tag = '';
+      try {
+        var p = new URLSearchParams(window.location.search);
+        tag = (p.get('tag') || '').toLowerCase();
+      } catch (e) { tag = ''; }
+      this.setActiveTag(tag, { pushUrl: false });
+    }
+
+    pushUrl() {
+      var p = new URLSearchParams(window.location.search);
+      if (this.activeTag) p.set('tag', this.activeTag);
+      else p.delete('tag');
+      var qs = p.toString();
+      var url = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash;
+      try { window.history.pushState({ tag: this.activeTag }, '', url); } catch (e) { /* ignore */ }
+    }
+
+    /* ================ Search ================ */
     bindSearch() {
-      if (!this.input || !this.form) return;
+      if (!this.input) return;
       var self = this;
-      var run = debounce(function () { self.runSuggest(); }, 180);
-
-      this.input.addEventListener('input', run);
-      this.input.addEventListener('focus', function () {
-        if (self.input.value.trim().length >= 2) self.runSuggest();
+      var run = debounce(function () { self.setQuery(self.input.value); }, 100);
+      this.input.addEventListener('input', function () {
+        if (self.clearBtn) self.clearBtn.hidden = self.input.value.length === 0;
+        run();
       });
-      this.input.addEventListener('keydown', function (e) {
-        if (e.key === 'ArrowDown') { e.preventDefault(); self.moveActive(1); }
-        else if (e.key === 'ArrowUp') { e.preventDefault(); self.moveActive(-1); }
-        else if (e.key === 'Enter' && self.activeIndex >= 0) {
-          var items = self.suggestEls.list.querySelectorAll('a.theme-store__suggest-item');
-          if (items[self.activeIndex]) {
-            e.preventDefault();
-            window.location.href = items[self.activeIndex].href;
-          }
-        } else if (e.key === 'Escape') {
-          self.closeSuggest();
-          self.input.blur();
-        }
-      });
+      if (this.clearBtn) {
+        this.clearBtn.addEventListener('click', function () {
+          self.input.value = '';
+          self.clearBtn.hidden = true;
+          self.setQuery('');
+          self.input.focus();
+        });
+      }
+    }
 
-      document.addEventListener('keydown', this.handleKeyDown);
-      document.addEventListener('click', this.handleDocumentClick);
+    setQuery(q) {
+      this.activeQuery = String(q || '').trim();
+      this.applyFilters();
+    }
 
-      if (this.suggestEls.all) {
-        this.suggestEls.all.addEventListener('click', function (e) {
+    /* ================ Tag list ================ */
+    bindCatLinks() {
+      var self = this;
+      this.catLinks.forEach(function (link) {
+        link.addEventListener('click', function (e) {
           e.preventDefault();
-          self.form.submit();
+          var tag = (link.dataset.catTag || '').toLowerCase();
+          self.setActiveTag(tag, { pushUrl: true });
+          // Close the mobile drawer if open
+          if (self.classList.contains('theme-store--sidebar-open')) self.toggleSidebar(false);
         });
-      }
-    }
-
-    runSuggest() {
-      var q = this.input.value.trim();
-      if (q.length < 2) {
-        this.closeSuggest();
-        return;
-      }
-      this.openSuggest();
-      this.suggestEls.loading.hidden = false;
-      this.suggestEls.empty.hidden = true;
-      this.suggestEls.footer.hidden = true;
-      var self = this;
-      var fetchId = (this.fetchId = (this.fetchId || 0) + 1);
-
-      fetchSuggest(q, { limit: 8 }).then(function (products) {
-        if (fetchId !== self.fetchId) return;
-        if (products && products.length > 0) {
-          self.suggestEls.loading.hidden = true;
-          renderResults(self.suggestEls, products, q);
-          self.updateAllResultsLink(q);
-          return null;
-        }
-        // Typo / partial-match fallback: wildcard each token
-        return fetchSuggest(q, { limit: 8, wildcard: true }).then(function (alt) {
-          if (fetchId !== self.fetchId) return;
-          self.suggestEls.loading.hidden = true;
-          renderResults(self.suggestEls, alt || [], q);
-          self.updateAllResultsLink(q);
-        });
-      }).catch(function () {
-        if (fetchId !== self.fetchId) return;
-        self.suggestEls.loading.hidden = true;
-        renderResults(self.suggestEls, [], q);
-        self.updateAllResultsLink(q);
       });
     }
 
-    updateAllResultsLink(q) {
-      if (!this.suggestEls.all) return;
-      var p = new URLSearchParams();
-      p.set('q', q);
-      p.set('type', 'product');
-      this.suggestEls.all.href = rootify('/search') + '?' + p.toString();
+    setActiveTag(tag, opts) {
+      this.activeTag = tag || '';
+      // active class + aria
+      this.catLinks.forEach(function (link) {
+        var t = (link.dataset.catTag || '').toLowerCase();
+        var on = t === (tag || '');
+        link.classList.toggle('theme-store__cat-link--active', on);
+        if (on) link.setAttribute('aria-current', 'page');
+        else link.removeAttribute('aria-current');
+      });
+      this.applyFilters();
+      if (opts && opts.pushUrl) this.pushUrl();
     }
 
-    openSuggest() {
-      this.suggestEls.wrap.hidden = false;
-      this.input.setAttribute('aria-expanded', 'true');
-    }
-    closeSuggest() {
-      this.suggestEls.wrap.hidden = true;
-      this.input.setAttribute('aria-expanded', 'false');
-      this.activeIndex = -1;
-      this.input.removeAttribute('aria-activedescendant');
-    }
-    moveActive(delta) {
-      var items = this.suggestEls.list.querySelectorAll('a.theme-store__suggest-item');
-      if (items.length === 0) return;
-      this.activeIndex = (this.activeIndex + delta + items.length) % items.length;
-      for (var i = 0; i < items.length; i++) {
-        var el = items[i];
-        if (i === this.activeIndex) {
-          el.classList.add('theme-store__suggest-item--active');
-          this.input.setAttribute('aria-activedescendant', el.id);
-          el.scrollIntoView({ block: 'nearest' });
+    /* ================ Filtering ================ */
+    applyFilters() {
+      var visible = 0;
+      var tag = this.activeTag;
+      var query = this.activeQuery;
+      this.cards.forEach(function (card) {
+        var matchTag = tagMatch(tag, card.dataset.productTags);
+        var matchSearch = searchMatch(query, card.dataset.productSearch);
+        if (matchTag && matchSearch) {
+          card.removeAttribute('hidden');
+          visible++;
         } else {
-          el.classList.remove('theme-store__suggest-item--active');
+          card.setAttribute('hidden', '');
         }
-      }
-    }
-    handleKeyDown(e) {
-      if (e.key === 'Escape' && !this.suggestEls.wrap.hidden) {
-        this.closeSuggest();
-      }
-    }
-    handleDocumentClick(e) {
-      if (!this.contains(e.target)) this.closeSuggest();
+      });
+      if (this.noResults) this.noResults.hidden = visible !== 0 || this.cards.length === 0;
+      if (this.grid) this.grid.classList.toggle('theme-store__grid--empty', visible === 0);
     }
 
-    /* ========= Sidebar drawer (mobile) ========= */
+    bindReset() {
+      if (!this.resetBtn) return;
+      var self = this;
+      this.resetBtn.addEventListener('click', function () {
+        if (self.input) self.input.value = '';
+        if (self.clearBtn) self.clearBtn.hidden = true;
+        self.activeQuery = '';
+        self.setActiveTag('', { pushUrl: true });
+      });
+    }
+
+    /* ================ Tag count badges ================ */
+    updateCounts() {
+      var counts = {};
+      var total = this.cards.length;
+      this.cards.forEach(function (card) {
+        var tags = String(card.dataset.productTags || '').toLowerCase().split(/\s+/);
+        for (var i = 0; i < tags.length; i++) {
+          var t = tags[i];
+          if (!t) continue;
+          counts[t] = (counts[t] || 0) + 1;
+        }
+      });
+      this.catLinks.forEach(function (link) {
+        var t = (link.dataset.catTag || '').toLowerCase();
+        var countEl = link.querySelector('[data-cat-count]');
+        if (!countEl) return;
+        if (!t) {
+          countEl.textContent = total;
+        } else {
+          countEl.textContent = counts[t] || 0;
+        }
+      });
+    }
+
+    /* ================ Sidebar drawer (mobile) ================ */
     bindSidebar() {
+      this.sidebar = this.querySelector('[data-sidebar]');
+      this.sidebarOverlay = this.querySelector('[data-sidebar-overlay]');
+      this.openBtn = this.querySelector('[data-filter-open]');
+      this.closeBtn = this.querySelector('[data-filter-close]');
       if (!this.sidebar) return;
       var self = this;
       if (this.openBtn) this.openBtn.addEventListener('click', function () { self.toggleSidebar(true); });
@@ -321,7 +268,25 @@
         if (this.openBtn) this.openBtn.setAttribute('aria-expanded', 'true');
         document.body.classList.add('ts-no-scroll');
         document.body.style.overflow = 'hidden';
-        // Move focus into drawer for keyboard users
         if (this.closeBtn) {
           var btn = this.closeBtn;
-  
+          requestAnimationFrame(function () { btn.focus(); });
+        }
+      } else {
+        this.classList.remove('theme-store--sidebar-open');
+        if (this.openBtn) {
+          this.openBtn.setAttribute('aria-expanded', 'false');
+          this.openBtn.focus();
+        }
+        document.body.classList.remove('ts-no-scroll');
+        document.body.style.overflow = '';
+        var self = this;
+        setTimeout(function () { if (self.sidebarOverlay) self.sidebarOverlay.hidden = true; }, 250);
+      }
+    }
+  }
+
+  if (!customElements.get('theme-store')) {
+    customElements.define('theme-store', ThemeStore);
+  }
+})();

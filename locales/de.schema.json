@@ -616,6 +616,10 @@
         },
         "padding_bottom": {
           "label": "Abstand unten"
+        },
+        "products_max": {
+          "label": "Maximale Anzahl Produkte",
+          "info": "Hard-Cap. Da der Filter komplett im Browser läuft, sollten alle Produkte gerendert werden. Erhöhe nur, wenn du > 50 Themes anzeigen willst."
         }
       },
       "blocks": {

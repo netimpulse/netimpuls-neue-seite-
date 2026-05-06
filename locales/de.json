@@ -117,7 +117,10 @@
       "filter_label": "Filter",
       "pagination_label": "Seitennavigation",
       "empty_state": "In dieser Kategorie sind aktuell keine Themes verfügbar.",
-      "show_all": "Alle Themes anzeigen"
+      "show_all": "Alle Themes anzeigen",
+      "clear_search": "Suche zurücksetzen",
+      "no_results": "Keine Themes gefunden, die zu deiner Suche passen.",
+      "reset_filters": "Filter zurücksetzen"
     }
   },
   "search": {

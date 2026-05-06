@@ -691,6 +691,10 @@
         },
         "padding_bottom": {
           "label": "Bottom padding"
+        },
+        "products_max": {
+          "label": "Maximum products",
+          "info": "Hard cap. The filter runs entirely in the browser, so all products should be rendered. Only raise this if you have more than 50 themes."
         }
       },
       "blocks": {

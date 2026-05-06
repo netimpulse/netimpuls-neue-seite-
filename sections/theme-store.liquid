@@ -1,23 +1,26 @@
 {%- comment -%}
-  Theme Store Section
-  -------------------
-  - Heading + predictive-search bar with typo-tolerant dropdown
-  - Sidebar (left on desktop, drawer on mobile):
-      * "Alle Themes" link → master collection (no tag)
-      * Tag filters built automatically from `collection.all_tags`
-      * Optional `tag_override` blocks let the merchant customize
-        display name, order, or hide a tag entirely
-      * Optional `feature` blocks (free text, e.g. "Mobile optimiert")
-  - Product grid uses `collection.products` so tag filtering happens
-    natively via Shopify's /collections/<handle>/<tag> URL.
+  Theme Store Section — client-side filter
+  ----------------------------------------
+  - Renders ALL products from the configured collection in one grid.
+  - JS filters the grid by:
+      * the active tag (sidebar click), and/or
+      * the search query (typed in the search input, typo-tolerant).
+  - No full page reloads. URL state is mirrored via ?tag=<tag> for
+    bookmarkability; popstate is handled.
 
-  Placement: ideally on `templates/collection.<master>.json` so that
-  the global `collection` and `current_tags` are populated. If placed
-  on a page template, the merchant must pick a collection in the
-  section settings; click on a tag will then navigate to that
-  collection's tag URL.
+  Schema:
+    settings.collection         the master collection (e.g. handle 'themes')
+    settings.default_label      label for the "All themes" tab
+    settings.products_max       hard cap on rendered products (default 50)
+    blocks.tag_override         optional: rename / hide / reorder a tag
+    blocks.feature              optional: free-text bullet in sidebar
 
-  Mobile-first: sidebar collapses into a drawer toggled via "Filter".
+  Notes:
+  - target_collection.all_tags is read for the filter list.
+  - Each card carries data-product-tags / data-product-search so JS can
+    filter without an API call.
+  - This works on any template (homepage / page / collection) because
+    everything is local.
 {%- endcomment -%}
 
 {{ 'section-theme-store.css' | asset_url | stylesheet_tag }}
@@ -28,40 +31,32 @@
   assign default_label = section.settings.default_label | default: 'Alle Themes'
   assign categories_heading = section.settings.categories_heading
   assign features_heading = section.settings.features_heading
-  assign products_per_page = section.settings.products_per_page | default: 12
+  assign products_max = section.settings.products_max | default: 50
 
-  comment
-    Resolve the target collection.
-    1. If we are on a collection template, use Shopify's `collection` global.
-    2. Otherwise, use the section's collection picker setting.
-  endcomment
-  assign target_collection = collection
-  if target_collection == blank or target_collection.products_count == 0 and section.settings.collection != blank
-    assign target_collection = collections[section.settings.collection]
-  endif
+  assign target_collection = collections[section.settings.collection]
   if target_collection == blank
-    assign target_collection = collections[section.settings.collection]
+    assign target_collection = collection
   endif
 
   comment
-    Detect the active tag from Shopify's `current_tags` global.
-    `current_tags` is auto-populated when on /collections/<handle>/<tag>.
-    Empty when on the bare collection URL.
+    Build a comma-delimited list of tags overridden by blocks (lowercased)
+    so we can dedupe when listing target_collection.all_tags later.
+    Also build a list of tags marked as "hide" so we drop them entirely.
   endcomment
-  assign current_tag = ''
-  if current_tags != blank and current_tags.size > 0
-    assign current_tag = current_tags[0]
-  endif
-  assign current_tag_lc = current_tag | downcase
-
-  comment
-    Build a comma-delimited list of tags covered by override blocks so we
-    can dedupe later when listing all_tags. Format: ",fashion,handwerk,"
-  endcomment
-  capture seen_tags
+  capture overridden_tags
     echo ','
     for block in section.blocks
       if block.type == 'tag_override' and block.settings.tag != blank
+        echo block.settings.tag | downcase
+        echo ','
+      endif
+    endfor
+  endcapture
+
+  capture hidden_tags
+    echo ','
+    for block in section.blocks
+      if block.type == 'tag_override' and block.settings.tag != blank and block.settings.hide
         echo block.settings.tag | downcase
         echo ','
       endif
@@ -95,7 +90,7 @@
 
   {%- comment -%} ============ SEARCH BAR ============ {%- endcomment -%}
   <div class="theme-store__search-wrap">
-    <form action="{{ routes.search_url }}" method="get" role="search" class="theme-store__search" data-search-form>
+    <form action="{{ routes.search_url }}" method="get" role="search" class="theme-store__search" data-search-form onsubmit="return false;">
       <label for="ThemeStoreSearch-{{ section.id }}" class="visually-hidden">{{ 'sections.theme_store.search_label' | t }}</label>
       <span class="theme-store__search-icon" aria-hidden="true">{%- render 'icon', name: 'search' -%}</span>
       <input
@@ -108,38 +103,11 @@
         autocorrect="off"
         spellcheck="false"
         maxlength="120"
-        aria-controls="ThemeStoreSuggest-{{ section.id }}"
-        aria-expanded="false"
-        aria-autocomplete="list"
         data-search-input>
-      <input type="hidden" name="type" value="product">
-      <input type="hidden" name="options[unavailable_products]" value="last">
-      <button type="submit" class="theme-store__search-submit" aria-label="{{ 'general.accessibility.submit_search' | t }}">
-        {%- render 'icon', name: 'arrow-right' -%}
+      <button type="button" class="theme-store__search-clear" data-search-clear hidden aria-label="{{ 'sections.theme_store.clear_search' | t }}">
+        {%- render 'icon', name: 'close' -%}
       </button>
     </form>
-
-    <div
-      id="ThemeStoreSuggest-{{ section.id }}"
-      class="theme-store__suggest"
-      role="listbox"
-      aria-label="{{ 'sections.theme_store.suggestions_label' | t }}"
-      hidden
-      data-suggest>
-      <div class="theme-store__suggest-loading" data-suggest-loading hidden>
-        <span>{{ 'sections.theme_store.searching' | t }}</span>
-      </div>
-      <ul class="theme-store__suggest-list" data-suggest-list></ul>
-      <div class="theme-store__suggest-empty" data-suggest-empty hidden>
-        <p>{{ 'sections.theme_store.no_suggestions_html' | t }}</p>
-      </div>
-      <div class="theme-store__suggest-footer" data-suggest-footer hidden>
-        <a class="theme-store__suggest-all" href="#" data-suggest-all>
-          <span data-suggest-all-text>{{ 'sections.theme_store.see_all_results' | t }}</span>
-          {%- render 'icon', name: 'arrow-right' -%}
-        </a>
-      </div>
-    </div>
   </div>
 
   {%- comment -%} ============ MOBILE FILTER TOGGLE ============ {%- endcomment -%}
@@ -164,28 +132,24 @@
       {%- endif -%}
 
       <ul class="theme-store__cat-list" role="list">
-        {%- comment -%} "Alle Themes" tab — collection root, no tag {%- endcomment -%}
+        {%- comment -%} "Alle Themes" tab — empty tag = show everything {%- endcomment -%}
         {%- if target_collection != blank -%}
           <li>
-            <a href="{{ target_collection.url }}"
-               class="theme-store__cat-link{% if current_tag == blank %} theme-store__cat-link--active{% endif %}"
+            <a href="?tag="
+               class="theme-store__cat-link theme-store__cat-link--active"
                data-cat-link
-               {% if current_tag == blank %}aria-current="page"{% endif %}>
+               data-cat-tag=""
+               aria-current="page">
               <span class="theme-store__cat-label">{{ default_label | escape }}</span>
-              <span class="theme-store__cat-count" aria-hidden="true">{{ target_collection.all_products_count }}</span>
+              <span class="theme-store__cat-count" aria-hidden="true" data-cat-count>{{ target_collection.all_products_count }}</span>
             </a>
           </li>
         {%- endif -%}
 
-        {%- comment -%}
-          1) Override blocks first, in editor order. Each block can:
-             - rename a tag's display label
-             - hide a tag (hide checkbox)
-             - implicitly position the tag higher than non-override tags.
-        {%- endcomment -%}
         {%- if target_collection != blank -%}
+          {%- comment -%} 1) Override blocks first, in editor order {%- endcomment -%}
           {%- for block in section.blocks -%}
-            {%- if block.type == 'tag_override' and block.settings.tag != blank -%}
+            {%- if block.type == 'tag_override' and block.settings.tag != blank and block.settings.hide != true -%}
               {%- assign override_tag_lc = block.settings.tag | downcase -%}
               {%- assign matched_tag = '' -%}
               {%- for t in target_collection.all_tags -%}
@@ -196,50 +160,33 @@
                 {%- endif -%}
               {%- endfor -%}
 
-              {%- if matched_tag != blank and block.settings.hide != true -%}
+              {%- if matched_tag != blank -%}
                 {%- assign cat_label = block.settings.custom_label | default: matched_tag -%}
-                {%- assign tag_count = target_collection.products | where: 'tags', matched_tag | size -%}
-                {%- assign is_active = false -%}
-                {%- if current_tag_lc == override_tag_lc -%}
-                  {%- assign is_active = true -%}
-                {%- endif -%}
                 <li {{ block.shopify_attributes }}>
-                  <a href="{{ target_collection.url }}/{{ matched_tag | downcase | url_encode }}"
-                     class="theme-store__cat-link{% if is_active %} theme-store__cat-link--active{% endif %}"
+                  <a href="?tag={{ matched_tag | downcase | url_encode }}"
+                     class="theme-store__cat-link"
                      data-cat-link
-                     {% if is_active %}aria-current="page"{% endif %}>
+                     data-cat-tag="{{ matched_tag | downcase | escape }}">
                     <span class="theme-store__cat-label">{{ cat_label | escape }}</span>
-                    {%- if tag_count > 0 -%}
-                      <span class="theme-store__cat-count" aria-hidden="true">{{ tag_count }}</span>
-                    {%- endif -%}
+                    <span class="theme-store__cat-count" aria-hidden="true" data-cat-count></span>
                   </a>
                 </li>
               {%- endif -%}
             {%- endif -%}
           {%- endfor -%}
 
-          {%- comment -%}
-            2) Remaining tags from collection.all_tags, alphabetical, that are
-               NOT covered by an override block (so we don't duplicate).
-          {%- endcomment -%}
+          {%- comment -%} 2) Remaining tags from collection.all_tags, alphabetical, dedupe overrides + hidden {%- endcomment -%}
           {%- for tag in target_collection.all_tags -%}
             {%- assign tag_lc = tag | downcase -%}
             {%- assign needle = ',' | append: tag_lc | append: ',' -%}
-            {%- unless seen_tags contains needle -%}
-              {%- assign tag_count = target_collection.products | where: 'tags', tag | size -%}
-              {%- assign is_active = false -%}
-              {%- if current_tag_lc == tag_lc -%}
-                {%- assign is_active = true -%}
-              {%- endif -%}
+            {%- unless overridden_tags contains needle or hidden_tags contains needle -%}
               <li>
-                <a href="{{ target_collection.url }}/{{ tag | downcase | url_encode }}"
-                   class="theme-store__cat-link{% if is_active %} theme-store__cat-link--active{% endif %}"
+                <a href="?tag={{ tag | downcase | url_encode }}"
+                   class="theme-store__cat-link"
                    data-cat-link
-                   {% if is_active %}aria-current="page"{% endif %}>
+                   data-cat-tag="{{ tag_lc | escape }}">
                   <span class="theme-store__cat-label">{{ tag | escape }}</span>
-                  {%- if tag_count > 0 -%}
-                    <span class="theme-store__cat-count" aria-hidden="true">{{ tag_count }}</span>
-                  {%- endif -%}
+                  <span class="theme-store__cat-count" aria-hidden="true" data-cat-count></span>
                 </a>
               </li>
             {%- endunless -%}
@@ -270,60 +217,81 @@
 
     <div class="theme-store__sidebar-overlay" data-sidebar-overlay hidden></div>
 
-    {%- comment -%} ============ PRODUCT GRID ============ {%- endcomment -%}
+    {%- comment -%} ============ PRODUCT GRID — render ALL products, JS filters ============ {%- endcomment -%}
     <div class="theme-store__main">
       {%- if target_collection != blank and target_collection.products.size > 0 -%}
-        {%- paginate target_collection.products by products_per_page -%}
-          <div class="theme-store__grid" role="list">
-            {%- for product in target_collection.products -%}
-              {%- liquid
-                assign featured = product.featured_media
-                assign img_alt = product.title | escape
-                assign price = product.price | money
-              -%}
-              <article class="theme-store__card" role="listitem">
-                <a class="theme-store__card-link" href="{{ product.url }}" aria-label="{{ product.title | escape }}">
-                  <div class="theme-store__card-media">
-                    {%- if featured != blank and featured.preview_image != blank -%}
-                      {{ featured.preview_image | image_url: width: 600 | image_tag:
-                         alt: img_alt,
-                         loading: 'lazy',
-                         widths: '320,480,600,800',
-                         sizes: '(min-width: 990px) 33vw, (min-width: 750px) 50vw, 100vw',
-                         class: 'theme-store__card-image' }}
-                    {%- else -%}
-                      <div class="theme-store__card-placeholder" aria-hidden="true"></div>
-                    {%- endif -%}
-                  </div>
-                  <div class="theme-store__card-body">
-                    <h3 class="theme-store__card-title">{{ product.title | escape }}</h3>
-                    {%- if product.metafields.theme.subtitle.value != blank -%}
-                      <p class="theme-store__card-subtitle">{{ product.metafields.theme.subtitle.value | escape }}</p>
-                    {%- elsif product.type != blank -%}
-                      <p class="theme-store__card-subtitle">{{ product.type | escape }}</p>
-                    {%- endif -%}
-                    <p class="theme-store__card-price">{{ price }}</p>
-                  </div>
-                </a>
-              </article>
-            {%- endfor -%}
-          </div>
+        <div class="theme-store__grid" role="list" data-grid>
+          {%- for product in target_collection.products limit: products_max -%}
+            {%- liquid
+              assign featured = product.featured_media
+              assign img_alt = product.title | escape
+              assign price = product.price | money
 
-          {%- if paginate.pages > 1 -%}
-            <nav class="theme-store__pagination" aria-label="{{ 'sections.theme_store.pagination_label' | t }}">
-              {{ paginate | default_pagination }}
-            </nav>
-          {%- endif -%}
-        {%- endpaginate -%}
+              capture pt_tags
+                for t in product.tags
+                  echo t | downcase
+                  echo ' '
+                endfor
+              endcapture
+
+              assign pt_subtitle = ''
+              if product.metafields.theme.subtitle.value != blank
+                assign pt_subtitle = product.metafields.theme.subtitle.value
+              elsif product.type != blank
+                assign pt_subtitle = product.type
+              endif
+
+              capture pt_search
+                echo product.title | downcase
+                echo ' '
+                echo pt_subtitle | downcase
+                echo ' '
+                echo pt_tags
+                echo product.vendor | downcase
+              endcapture
+            -%}
+            <article
+              class="theme-store__card"
+              role="listitem"
+              data-product-card
+              data-product-title="{{ product.title | escape }}"
+              data-product-tags="{{ pt_tags | strip | escape }}"
+              data-product-search="{{ pt_search | strip | escape }}">
+              <a class="theme-store__card-link" href="{{ product.url }}" aria-label="{{ product.title | escape }}">
+                <div class="theme-store__card-media">
+                  {%- if featured != blank and featured.preview_image != blank -%}
+                    {{ featured.preview_image | image_url: width: 600 | image_tag:
+                       alt: img_alt,
+                       loading: 'lazy',
+                       widths: '320,480,600,800',
+                       sizes: '(min-width: 990px) 33vw, (min-width: 750px) 50vw, 100vw',
+                       class: 'theme-store__card-image' }}
+                  {%- else -%}
+                    <div class="theme-store__card-placeholder" aria-hidden="true"></div>
+                  {%- endif -%}
+                </div>
+                <div class="theme-store__card-body">
+                  <h3 class="theme-store__card-title">{{ product.title | escape }}</h3>
+                  {%- if pt_subtitle != blank -%}
+                    <p class="theme-store__card-subtitle">{{ pt_subtitle | escape }}</p>
+                  {%- endif -%}
+                  <p class="theme-store__card-price">{{ price }}</p>
+                </div>
+              </a>
+            </article>
+          {%- endfor -%}
+        </div>
+
+        <div class="theme-store__no-results" data-no-results hidden>
+          <p>{{ 'sections.theme_store.no_results' | t }}</p>
+          <button type="button" class="theme-store__no-results-reset" data-reset-filters>
+            {{ 'sections.theme_store.reset_filters' | t }}
+            {%- render 'icon', name: 'arrow-right' -%}
+          </button>
+        </div>
       {%- else -%}
         <div class="theme-store__empty">
           <p>{{ 'sections.theme_store.empty_state' | t }}</p>
-          {%- if target_collection != blank and current_tag != blank -%}
-            <a class="theme-store__empty-link" href="{{ target_collection.url }}">
-              {{ 'sections.theme_store.show_all' | t }}
-              {%- render 'icon', name: 'arrow-right' -%}
-            </a>
-          {%- endif -%}
         </div>
       {%- endif -%}
     </div>
@@ -395,12 +363,13 @@
     },
     {
       "type": "range",
-      "id": "products_per_page",
-      "label": "t:sections.theme_store.settings.products_per_page.label",
+      "id": "products_max",
+      "label": "t:sections.theme_store.settings.products_max.label",
+      "info": "t:sections.theme_store.settings.products_max.info",
       "min": 6,
-      "max": 24,
-      "step": 2,
-      "default": 12
+      "max": 100,
+      "step": 1,
+      "default": 50
     },
     {
       "type": "header",
@@ -480,3 +449,4 @@
   ]
 }
 {% endschema %}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
