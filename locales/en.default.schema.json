@@ -650,11 +650,11 @@
           "label": "Heading"
         },
         "collection_header": {
-          "content": "Collection & sidebar"
+          "content": "Collection & filter"
         },
-        "default_collection": {
-          "label": "Master collection (All Themes)",
-          "info": "Shown when the “All Themes” tab is active. Recommended: a smart collection that contains products from any of your category collections."
+        "collection": {
+          "label": "Collection (e.g. “All Themes”)",
+          "info": "Used when the section is not placed on a collection template. On a collection page (/collections/<handle>) the current collection is used automatically. Tags from the collection appear as filters."
         },
         "default_label": {
           "label": "“All Themes” tab label"
@@ -685,15 +685,20 @@
         }
       },
       "blocks": {
-        "category": {
-          "name": "Category",
+        "tag_override": {
+          "name": "Tag override",
           "settings": {
-            "collection": {
-              "label": "Collection"
+            "tag": {
+              "label": "Tag",
+              "info": "The tag as set on your products (case-insensitive), e.g. “fashion” or “Handwerk”."
             },
             "custom_label": {
               "label": "Display name (optional)",
-              "info": "Falls back to the collection title if empty."
+              "info": "Falls back to the raw tag if empty."
+            },
+            "hide": {
+              "label": "Hide tag from filter",
+              "info": "Useful for service tags like “featured” or “new” that should not be shown."
             }
           }
         },

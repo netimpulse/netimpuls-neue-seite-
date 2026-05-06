@@ -575,11 +575,11 @@
           "label": "Überschrift"
         },
         "collection_header": {
-          "content": "Kollektion & Sidebar"
+          "content": "Kollektion & Filter"
         },
-        "default_collection": {
-          "label": "Master-Kollektion (Alle Themes)",
-          "info": "Diese Kollektion wird angezeigt, wenn der Tab „Alle Themes\" aktiv ist. Empfohlen: Smart-Collection mit Regel „Ist in irgendeiner dieser Kollektionen\"."
+        "collection": {
+          "label": "Kollektion (z.B. „Alle Themes\")",
+          "info": "Wird verwendet, wenn die Section nicht direkt auf einem Kollektions-Template platziert ist. Auf einer Kollektions-Seite (/collections/<handle>) wird automatisch die aktuelle Kollektion verwendet. Tags der Kollektion werden automatisch als Filter angezeigt."
         },
         "default_label": {
           "label": "Label für „Alle Themes\"-Tab"
@@ -610,15 +610,20 @@
         }
       },
       "blocks": {
-        "category": {
-          "name": "Kategorie",
+        "tag_override": {
+          "name": "Tag-Anpassung",
           "settings": {
-            "collection": {
-              "label": "Kollektion"
+            "tag": {
+              "label": "Tag",
+              "info": "Der Tag-Name wie er in deinen Produkten gesetzt ist (Groß-/Kleinschreibung egal). Z.B. „fashion\" oder „Handwerk\"."
             },
             "custom_label": {
               "label": "Anzeige-Name (optional)",
-              "info": "Falls leer, wird der Kollektions-Titel verwendet."
+              "info": "Wenn leer, wird der Tag-Name 1:1 angezeigt."
+            },
+            "hide": {
+              "label": "Tag im Filter ausblenden",
+              "info": "Wenn aktiviert, erscheint der Tag nicht im Sidebar-Filter (nützlich für Service-Tags wie „featured\" oder „neu\")."
             }
           }
         },

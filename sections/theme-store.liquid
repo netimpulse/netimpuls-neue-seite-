@@ -1,18 +1,23 @@
 {%- comment -%}
   Theme Store Section
   -------------------
-  - Header: heading + predictive-search bar with dropdown results
+  - Heading + predictive-search bar with typo-tolerant dropdown
   - Sidebar (left on desktop, drawer on mobile):
-      * Category filter (block type "category" — pick collection + optional custom label, can be added/removed unlimited)
-      * Feature list (block type "feature" — free text, optional)
-      * "Alle Themes" tab is rendered first; it points to the section's default_collection (recommended: master collection)
-  - Main: paginated product grid using collection.products
-  - State via URL query param ?cat=<collection_handle> ; defaults to default_collection
+      * "Alle Themes" link → master collection (no tag)
+      * Tag filters built automatically from `collection.all_tags`
+      * Optional `tag_override` blocks let the merchant customize
+        display name, order, or hide a tag entirely
+      * Optional `feature` blocks (free text, e.g. "Mobile optimiert")
+  - Product grid uses `collection.products` so tag filtering happens
+    natively via Shopify's /collections/<handle>/<tag> URL.
 
-  Predictive search: assets/section-theme-store.js queries /search/suggest.json
-  with multiple variants for typo tolerance (raw, prefix, AND-ed tokens).
+  Placement: ideally on `templates/collection.<master>.json` so that
+  the global `collection` and `current_tags` are populated. If placed
+  on a page template, the merchant must pick a collection in the
+  section settings; click on a tag will then navigate to that
+  collection's tag URL.
 
-  Mobile-first: sidebar collapses into a drawer toggled via "Filter" button.
+  Mobile-first: sidebar collapses into a drawer toggled via "Filter".
 {%- endcomment -%}
 
 {{ 'section-theme-store.css' | asset_url | stylesheet_tag }}
@@ -20,33 +25,52 @@
 
 {%- liquid
   assign scheme = section.settings.color_scheme
-  assign default_collection = collections[section.settings.default_collection]
   assign default_label = section.settings.default_label | default: 'Alle Themes'
   assign categories_heading = section.settings.categories_heading
   assign features_heading = section.settings.features_heading
   assign products_per_page = section.settings.products_per_page | default: 12
 
   comment
-    Determine the active filter from URL ?cat=<handle>.
-    If the user opened ?cat=fashion and a "category" block points to collections.fashion, use that.
-    Otherwise fall back to default_collection.
+    Resolve the target collection.
+    1. If we are on a collection template, use Shopify's `collection` global.
+    2. Otherwise, use the section's collection picker setting.
   endcomment
-  assign active_handle = ''
-  if request.path contains '/collections/'
-    assign active_handle = request.path | split: '/collections/' | last | split: '/' | first
+  assign target_collection = collection
+  if target_collection == blank or target_collection.products_count == 0 and section.settings.collection != blank
+    assign target_collection = collections[section.settings.collection]
   endif
-  if request.params.cat != blank
-    assign active_handle = request.params.cat
+  if target_collection == blank
+    assign target_collection = collections[section.settings.collection]
   endif
 
-  assign active_collection = default_collection
-  if active_handle != blank and collections[active_handle] != blank
-    assign active_collection = collections[active_handle]
+  comment
+    Detect the active tag from Shopify's `current_tags` global.
+    `current_tags` is auto-populated when on /collections/<handle>/<tag>.
+    Empty when on the bare collection URL.
+  endcomment
+  assign current_tag = ''
+  if current_tags != blank and current_tags.size > 0
+    assign current_tag = current_tags[0]
   endif
+  assign current_tag_lc = current_tag | downcase
+
+  comment
+    Build a comma-delimited list of tags covered by override blocks so we
+    can dedupe later when listing all_tags. Format: ",fashion,handwerk,"
+  endcomment
+  capture seen_tags
+    echo ','
+    for block in section.blocks
+      if block.type == 'tag_override' and block.settings.tag != blank
+        echo block.settings.tag | downcase
+        echo ','
+      endif
+    endfor
+  endcapture
 -%}
 
 {% style %}
-  {%- if scheme -%}
+  {%- if scheme != blank and scheme.settings != blank and scheme.settings.background != blank -%}
   #shopify-section-{{ section.id }} .color-{{ scheme.id }} {
     --color-background: {{ scheme.settings.background.red }}, {{ scheme.settings.background.green }}, {{ scheme.settings.background.blue }};
     --color-text: {{ scheme.settings.text.red }}, {{ scheme.settings.text.green }}, {{ scheme.settings.text.blue }};
@@ -61,7 +85,7 @@
   }
 {% endstyle %}
 
-<theme-store class="theme-store color-scheme color-{{ scheme.id }}" data-section-id="{{ section.id }}" data-default-handle="{{ section.settings.default_collection | escape }}" data-active-handle="{{ active_handle | escape }}">
+<theme-store class="theme-store color-scheme color-{{ scheme.id }}" data-section-id="{{ section.id }}">
 
   {%- if section.settings.heading != blank -%}
     <header class="theme-store__heading-wrap">
@@ -140,46 +164,87 @@
       {%- endif -%}
 
       <ul class="theme-store__cat-list" role="list">
-        {%- assign default_handle = section.settings.default_collection -%}
-        {%- assign is_default_active = false -%}
-        {%- if active_handle == blank or active_handle == default_handle -%}
-          {%- assign is_default_active = true -%}
+        {%- comment -%} "Alle Themes" tab — collection root, no tag {%- endcomment -%}
+        {%- if target_collection != blank -%}
+          <li>
+            <a href="{{ target_collection.url }}"
+               class="theme-store__cat-link{% if current_tag == blank %} theme-store__cat-link--active{% endif %}"
+               data-cat-link
+               {% if current_tag == blank %}aria-current="page"{% endif %}>
+              <span class="theme-store__cat-label">{{ default_label | escape }}</span>
+              <span class="theme-store__cat-count" aria-hidden="true">{{ target_collection.all_products_count }}</span>
+            </a>
+          </li>
         {%- endif -%}
-        <li>
-          <a href="?cat={{ default_handle | url_encode }}"
-             class="theme-store__cat-link{% if is_default_active %} theme-store__cat-link--active{% endif %}"
-             data-cat-link
-             data-cat-handle="{{ default_handle | escape }}"
-             {% if is_default_active %}aria-current="page"{% endif %}>
-            <span class="theme-store__cat-label">{{ default_label | escape }}</span>
-            {%- if default_collection -%}
-              <span class="theme-store__cat-count" aria-hidden="true">{{ default_collection.products_count }}</span>
-            {%- endif -%}
-          </a>
-        </li>
 
-        {%- for block in section.blocks -%}
-          {%- if block.type == 'category' -%}
-            {%- assign block_collection = collections[block.settings.collection] -%}
-            {%- if block_collection != blank and block_collection.handle != default_handle -%}
-              {%- assign cat_label = block.settings.custom_label | default: block_collection.title -%}
+        {%- comment -%}
+          1) Override blocks first, in editor order. Each block can:
+             - rename a tag's display label
+             - hide a tag (hide checkbox)
+             - implicitly position the tag higher than non-override tags.
+        {%- endcomment -%}
+        {%- if target_collection != blank -%}
+          {%- for block in section.blocks -%}
+            {%- if block.type == 'tag_override' and block.settings.tag != blank -%}
+              {%- assign override_tag_lc = block.settings.tag | downcase -%}
+              {%- assign matched_tag = '' -%}
+              {%- for t in target_collection.all_tags -%}
+                {%- assign t_lc = t | downcase -%}
+                {%- if t_lc == override_tag_lc -%}
+                  {%- assign matched_tag = t -%}
+                  {%- break -%}
+                {%- endif -%}
+              {%- endfor -%}
+
+              {%- if matched_tag != blank and block.settings.hide != true -%}
+                {%- assign cat_label = block.settings.custom_label | default: matched_tag -%}
+                {%- assign tag_count = target_collection.products | where: 'tags', matched_tag | size -%}
+                {%- assign is_active = false -%}
+                {%- if current_tag_lc == override_tag_lc -%}
+                  {%- assign is_active = true -%}
+                {%- endif -%}
+                <li {{ block.shopify_attributes }}>
+                  <a href="{{ target_collection.url }}/{{ matched_tag | downcase | url_encode }}"
+                     class="theme-store__cat-link{% if is_active %} theme-store__cat-link--active{% endif %}"
+                     data-cat-link
+                     {% if is_active %}aria-current="page"{% endif %}>
+                    <span class="theme-store__cat-label">{{ cat_label | escape }}</span>
+                    {%- if tag_count > 0 -%}
+                      <span class="theme-store__cat-count" aria-hidden="true">{{ tag_count }}</span>
+                    {%- endif -%}
+                  </a>
+                </li>
+              {%- endif -%}
+            {%- endif -%}
+          {%- endfor -%}
+
+          {%- comment -%}
+            2) Remaining tags from collection.all_tags, alphabetical, that are
+               NOT covered by an override block (so we don't duplicate).
+          {%- endcomment -%}
+          {%- for tag in target_collection.all_tags -%}
+            {%- assign tag_lc = tag | downcase -%}
+            {%- assign needle = ',' | append: tag_lc | append: ',' -%}
+            {%- unless seen_tags contains needle -%}
+              {%- assign tag_count = target_collection.products | where: 'tags', tag | size -%}
               {%- assign is_active = false -%}
-              {%- if active_handle == block_collection.handle -%}
+              {%- if current_tag_lc == tag_lc -%}
                 {%- assign is_active = true -%}
               {%- endif -%}
-              <li {{ block.shopify_attributes }}>
-                <a href="?cat={{ block_collection.handle | url_encode }}"
+              <li>
+                <a href="{{ target_collection.url }}/{{ tag | downcase | url_encode }}"
                    class="theme-store__cat-link{% if is_active %} theme-store__cat-link--active{% endif %}"
                    data-cat-link
-                   data-cat-handle="{{ block_collection.handle | escape }}"
                    {% if is_active %}aria-current="page"{% endif %}>
-                  <span class="theme-store__cat-label">{{ cat_label | escape }}</span>
-                  <span class="theme-store__cat-count" aria-hidden="true">{{ block_collection.products_count }}</span>
+                  <span class="theme-store__cat-label">{{ tag | escape }}</span>
+                  {%- if tag_count > 0 -%}
+                    <span class="theme-store__cat-count" aria-hidden="true">{{ tag_count }}</span>
+                  {%- endif -%}
                 </a>
               </li>
-            {%- endif -%}
-          {%- endif -%}
-        {%- endfor -%}
+            {%- endunless -%}
+          {%- endfor -%}
+        {%- endif -%}
       </ul>
 
       {%- assign feature_count = 0 -%}
@@ -207,10 +272,10 @@
 
     {%- comment -%} ============ PRODUCT GRID ============ {%- endcomment -%}
     <div class="theme-store__main">
-      {%- if active_collection != blank and active_collection.products.size > 0 -%}
-        {%- paginate active_collection.products by products_per_page -%}
+      {%- if target_collection != blank and target_collection.products.size > 0 -%}
+        {%- paginate target_collection.products by products_per_page -%}
           <div class="theme-store__grid" role="list">
-            {%- for product in active_collection.products -%}
+            {%- for product in target_collection.products -%}
               {%- liquid
                 assign featured = product.featured_media
                 assign img_alt = product.title | escape
@@ -253,8 +318,8 @@
       {%- else -%}
         <div class="theme-store__empty">
           <p>{{ 'sections.theme_store.empty_state' | t }}</p>
-          {%- if default_collection != blank -%}
-            <a class="theme-store__empty-link" href="?cat={{ section.settings.default_collection | url_encode }}">
+          {%- if target_collection != blank and current_tag != blank -%}
+            <a class="theme-store__empty-link" href="{{ target_collection.url }}">
               {{ 'sections.theme_store.show_all' | t }}
               {%- render 'icon', name: 'arrow-right' -%}
             </a>
@@ -293,9 +358,9 @@
     },
     {
       "type": "collection",
-      "id": "default_collection",
-      "label": "t:sections.theme_store.settings.default_collection.label",
-      "info": "t:sections.theme_store.settings.default_collection.info"
+      "id": "collection",
+      "label": "t:sections.theme_store.settings.collection.label",
+      "info": "t:sections.theme_store.settings.collection.info"
     },
     {
       "type": "text",
@@ -364,20 +429,28 @@
   ],
   "blocks": [
     {
-      "type": "category",
-      "name": "t:sections.theme_store.blocks.category.name",
+      "type": "tag_override",
+      "name": "t:sections.theme_store.blocks.tag_override.name",
       "limit": 50,
       "settings": [
         {
-          "type": "collection",
-          "id": "collection",
-          "label": "t:sections.theme_store.blocks.category.settings.collection.label"
+          "type": "text",
+          "id": "tag",
+          "label": "t:sections.theme_store.blocks.tag_override.settings.tag.label",
+          "info": "t:sections.theme_store.blocks.tag_override.settings.tag.info"
         },
         {
           "type": "text",
           "id": "custom_label",
-          "label": "t:sections.theme_store.blocks.category.settings.custom_label.label",
-          "info": "t:sections.theme_store.blocks.category.settings.custom_label.info"
+          "label": "t:sections.theme_store.blocks.tag_override.settings.custom_label.label",
+          "info": "t:sections.theme_store.blocks.tag_override.settings.custom_label.info"
+        },
+        {
+          "type": "checkbox",
+          "id": "hide",
+          "label": "t:sections.theme_store.blocks.tag_override.settings.hide.label",
+          "info": "t:sections.theme_store.blocks.tag_override.settings.hide.info",
+          "default": false
         }
       ]
     },
