@@ -166,5 +166,20 @@
       "no_results": "No themes match your search.",
       "reset_filters": "Reset filters"
     }
+  },
+  "templates": {
+    "search": {
+      "products": "Products",
+      "pages": "Pages",
+      "suggestions": "Suggestions"
+    }
+  },
+  "customer": {
+    "log_in": "Log in",
+    "account_fallback": "Account"
+  },
+  "localization": {
+    "country_label": "Country/region",
+    "language_label": "Language"
   }
 }

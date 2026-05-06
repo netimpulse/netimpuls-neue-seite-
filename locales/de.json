@@ -166,5 +166,20 @@
       "submit": "Anmelden",
       "title": "Einloggen"
     }
+  },
+  "templates": {
+    "search": {
+      "products": "Produkte",
+      "pages": "Seiten",
+      "suggestions": "Vorschläge"
+    }
+  },
+  "customer": {
+    "log_in": "Einloggen",
+    "account_fallback": "Konto"
+  },
+  "localization": {
+    "country_label": "Land/Region",
+    "language_label": "Sprache"
   }
 }

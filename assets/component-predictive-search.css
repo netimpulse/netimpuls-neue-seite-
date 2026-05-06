@@ -1,0 +1,111 @@
+.predictive-search {
+  display: none;
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  right: 0;
+  overflow-y: auto;
+  background: rgb(var(--color-background));
+  border: 1px solid rgba(var(--color-text), 0.1);
+  border-radius: 1rem;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.14);
+  color: rgb(var(--color-text));
+  z-index: 6;
+}
+
+.predictive-search[open] {
+  display: block;
+}
+
+.predictive-search__results-groups-wrapper {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.predictive-search__heading {
+  margin: 0 0 0.5rem;
+  color: rgba(var(--color-text), 0.66);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.predictive-search__results-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.predictive-search__item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.predictive-search__item:hover,
+.predictive-search__item[aria-selected='true'],
+.predictive-search__list-item[aria-selected='true'] .predictive-search__item {
+  background: rgba(var(--color-text), 0.06);
+  text-decoration: none;
+}
+
+.predictive-search__image {
+  flex: 0 0 auto;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 0.65rem;
+  object-fit: cover;
+}
+
+.predictive-search__item-content {
+  min-width: 0;
+}
+
+.predictive-search__item-heading,
+.predictive-search__item-vendor,
+.predictive-search__item-price {
+  display: block;
+}
+
+.predictive-search__item-heading {
+  font-weight: 700;
+}
+
+.predictive-search__item-vendor,
+.predictive-search__item-price {
+  margin-top: 0.12rem;
+  color: rgba(var(--color-text), 0.68);
+  font-size: 0.85rem;
+}
+
+.predictive-search__search-for-button {
+  justify-content: space-between;
+  border-top: 1px solid rgba(var(--color-text), 0.1);
+  border-radius: 0;
+  background: rgba(var(--color-text), 0.04);
+  font-weight: 700;
+}
+
+.predictive-search__loading-state,
+.predictive-search__empty {
+  padding: 1rem;
+  color: rgba(var(--color-text), 0.7);
+}
+
+@media screen and (min-width: 750px) {
+  .predictive-search__results-groups-wrapper--has-products {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  }
+}
