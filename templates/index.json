@@ -12,9 +12,66 @@
     "main": {
       "type": "hello-world",
       "settings": {}
+    },
+    "theme_store_CKyjPr": {
+      "type": "theme-store",
+      "blocks": {
+        "category_PacKX3": {
+          "type": "category",
+          "settings": {
+            "collection": "themes",
+            "custom_label": ""
+          }
+        },
+        "feature_iTEbUE": {
+          "type": "feature",
+          "settings": {
+            "text": "Mobile optimiert"
+          }
+        },
+        "feature_atXfkQ": {
+          "type": "feature",
+          "settings": {
+            "text": "SEO-freundlich"
+          }
+        },
+        "feature_wnYwVP": {
+          "type": "feature",
+          "settings": {
+            "text": "Theme-Editor kompatibel"
+          }
+        },
+        "feature_ET8cgE": {
+          "type": "feature",
+          "settings": {
+            "text": "Schnelle Ladezeiten"
+          }
+        }
+      },
+      "block_order": [
+        "category_PacKX3",
+        "feature_iTEbUE",
+        "feature_atXfkQ",
+        "feature_wnYwVP",
+        "feature_ET8cgE"
+      ],
+      "name": "t:sections.theme_store.presets.default.name",
+      "settings": {
+        "color_scheme": "",
+        "heading": "Theme Store",
+        "default_collection": "frontpage",
+        "default_label": "Alle Themes",
+        "categories_heading": "Kategorien",
+        "features_heading": "Features",
+        "products_per_row": 3,
+        "products_per_page": 12,
+        "padding_top": 48,
+        "padding_bottom": 64
+      }
     }
   },
   "order": [
-    "main"
+    "main",
+    "theme_store_CKyjPr"
   ]
 }
